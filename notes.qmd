@@ -1,0 +1,9 @@
+---
+title: "notes"
+format: html
+editor: source
+---
+
+I actually think that two experiments are required here. The first experiment would be estimate the plant soil feedback of natives with changing nitrogen.
+
+The second experiment would be to see how the competitive effect of invasives on natives changes with nitrogen with and without microbes (this is what we discussed). However, for this, I think the microbe treatment should be natives and invasives for the pots where the invasive is not present.

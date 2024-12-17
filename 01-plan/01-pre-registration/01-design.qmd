@@ -1,0 +1,24 @@
+---
+title: "Pre-registration"
+format: html
+editor: source
+---
+
+## 1. Project Plan:
+
+
+## Objective
+
+
+## Background
+
+
+## Experimental design planning
+
+
+## Analysis Plan
+
+
+
+
+

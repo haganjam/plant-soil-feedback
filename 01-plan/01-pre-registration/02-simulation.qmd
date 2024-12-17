@@ -1,0 +1,165 @@
+---
+title: "Simulation and power analysis"
+format: html
+editor: source
+---
+
+## Simulate the data-generating process
+
+We will use a simple simulation as an idealisation of the data-generating process for the experiment. For this, we have adapted the Lotka-Volterra competition equations:
+
+$$
+dS_n/dt = [r_{S_n}(N_{\text{avail}}) \cdot (1 - \beta_{S_n}(N_{\text{avail}})P)] \cdot S_n \cdot (1 - \frac{(S_n + \alpha_{ni}S_i)}{K_{S_n}})
+$$
+$$
+dS_i/dt = [r_{S_i}(N_{\text{avail}}) \cdot (1 - \beta_{S_i}(N_{\text{avail}})P)] \cdot S_i \cdot (1 - \frac{(S_i + \alpha_{in}S_n)}{K_{S_i}})
+$$
+
+
+Where:
+
+$dS_n/dt$: Rate of change of native species biomass.  
+$dS_i/dt$: Rate of change of invasive species biomass.  
+
+$r_{S_n}(N_{avail})$, $r_{S_i}(N_{avail})$: Nitrogen-dependent growth rates for the native and invasive species.  
+
+$\beta_{S_n}$, $\beta_{S_i}$: Pathogen effects on the native and invasive species (fractional reduction in growth rate).  
+
+$P$: Pathogen presence (0 = absent, 1 = present).  
+
+$S_n$, $S_i$: Biomass of the native and invasive species, respectively.  
+
+$\alpha_{ni}$, $\alpha_{in}$: Competition coefficients (effect of one species on the other).  
+
+$K_{S_n}$, $K_{S_n}$: Carrying capacities for the native and invasive species.  
+
+In these Lotka-Volterra competition equations, the growth rate ($r_{S_n}$ and $r_{S_i}$) is dependent on nitrogen availability via the Michaelis-Menten equation:
+
+$$ r_{S_n}(N_{\text{avail}}) = r\text{max}_{S_n} \cdot (\frac{N_{\text{avail}}}{(K_{m, S_n} + N_{\text{avail}})}) $$
+$$ r_{S_i}(N_{\text{avail}}) = r\text{max}_{S_i} \cdot (\frac{N_{\text{avail}}}{(K_{m, S_i} + N_{\text{avail}})}) $$
+Where:
+
+$r_{S_n}(N_{\text{avail}})$, $r_{S_i}(N_{\text{avail}})$: Effective growth rate based on nitrogen of the native and the invasive 
+$r\text{max}_{S_n}$, $r\text{max}_{S_i}$: Maximum growth rate of the native and the invasive  
+$K_{m, S_n}$, $K_{m, S_i}$: Half-saturation constant (nitrogen level at which growth is half of $r\text{max}$).
+$N_{\text{avail}}$: Nitrogen availability (continuous input).  
+
+Similarly, the effect of pathogens on growth rate ($\beta_{S_n}$ and $\beta_{S_i}$) also depends on nitrogen availability via a Michaelis-Menten function:
+
+$$ \beta_{S_n}(N_{\text{avail}}) = \beta\text{max}_{S_n} \cdot (\frac{N_{\text{avail}}}{(K_{m\beta, S_n} + N_{\text{avail}})}) $$
+$$ \beta_{S_i}(N_{\text{avail}}) = \beta\text{max}_{S_i} \cdot (\frac{N_{\text{avail}}}{(K_{m\beta, S_i} + N_{\text{avail}})}) $$
+
+```{r}
+# Load the required package
+library(deSolve)
+library(ggplot2)
+
+# function for nitrogen-dependent growth rate (Michaelis-Menten form)
+growth_rate <- function(Nitrogen, r_max, K_m) {
+  return(r_max * Nitrogen / (K_m + Nitrogen))
+}
+
+# function for pathogen-dependent growth rate (Michaelis-Menten form)
+pathogen_effect <- function(Nitrogen, b_max, K_mb) {
+  return(b_max * Nitrogen / (K_mb + Nitrogen))
+}
+
+# Lotka-Volterra competition model with nitrogen-dependent growth rates
+competition_model <- function(t, state, params) {
+  
+  # unpack state variables
+  SN <- state["SN"]  # Native species biomass
+  SI <- state["SI"]  # Invasive species biomass
+  
+  # unpack parameters
+  with(as.list(params), {
+    
+    # calculate the pathogen effect
+    beta_SN <- pathogen_effect(Nitrogen, b_SN_max, K_mb_SN)
+    beta_SI <- pathogen_effect(Nitrogen, b_SI_max, K_mb_SI)
+    
+    # calculate nitrogen-dependent growth rates
+    r_SN_effective <- growth_rate(Nitrogen, r_SN_max, K_m_SN) * (1 - beta_SN * Pathogen)
+    r_SI_effective <- growth_rate(Nitrogen, r_SI_max, K_m_SI) * (1 - beta_SI * Pathogen)
+    
+    # Define the ODEs
+    dSN <- r_SN_effective * SN * (1 - (SN + alpha_NI * SI) / K_SN)
+    dSI <- r_SI_effective * SI * (1 - (SI + alpha_IN * SN) / K_SI)
+    
+    # Return the rates of change
+    list(c(dSN, dSI))
+  })
+}
+
+# Simulation parameters
+params <- list(
+  b_SN_max = 0.5,   # Max pathogen effect for native species
+  b_SI_max = 0.7,   # Max pathogen for invasive species
+  K_mb_SN = 0.5,    # pathogen effect Half-saturation constant for nitrogen for native species
+  K_mb_SI = 0.4,    # pathogen effect Half-saturation constant for nitrogen for invasive species
+  r_SN_max = 0.5,   # Max growth rate for native species
+  r_SI_max = 0.7,   # Max growth rate for invasive species
+  K_m_SN = 2,       # growth-rate Half-saturation constant for nitrogen for native species
+  K_m_SI = 2,       # growth-rate Half-saturation constant for nitrogen for invasive species
+  K_SN = 100,       # Carrying capacity for native species
+  K_SI = 120,       # Carrying capacity for invasive species
+  alpha_NI = 0.6,   # Competition coefficient (effect of invasive on native)
+  alpha_IN = 0.4,   # Competition coefficient (effect of native on invasive)
+  Pathogen = 1,     # Pathogen presence (1 = present, 0 = absent)
+  Nitrogen = 5      # Nitrogen availability (continuous input)
+)
+
+# Initial conditions for species biomass
+state <- c(SN = 10, SI = 10)
+
+# Time steps
+times <- seq(0, 50, by = 0.1)
+
+
+# each hypothesis needs a separate params list
+
+# the model should run N replicates (i.e. replicate pots)
+# data should be passed through a distribution with some residual standard deviation
+
+# we should simulate all treatments (i.e. nitrogen x pathogen crosses)
+
+# Simulate under different conditions
+simulate_competition <- function(pathogen, nitrogen) {
+  
+  params$Pathogen <- pathogen
+  params$Nitrogen <- nitrogen
+  
+  # Solve the ODE
+  out <- ode(y = state, times = times, func = competition_model, parms = params)
+  as.data.frame(out)
+  
+}
+
+# Run simulations
+sim_no_pathogen_high_nitrogen <- simulate_competition(pathogen = 0, nitrogen = 10)
+sim_pathogen_high_nitrogen <- simulate_competition(pathogen = 1, nitrogen = 10)
+sim_no_pathogen_low_nitrogen <- simulate_competition(pathogen = 0, nitrogen = 2)
+sim_pathogen_low_nitrogen <- simulate_competition(pathogen = 1, nitrogen = 2)
+
+# Combine results into a single data frame
+sim_no_pathogen_high_nitrogen$Scenario <- "No Pathogen, High Nitrogen"
+sim_pathogen_high_nitrogen$Scenario <- "Pathogen, High Nitrogen"
+sim_no_pathogen_low_nitrogen$Scenario <- "No Pathogen, Low Nitrogen"
+sim_pathogen_low_nitrogen$Scenario <- "Pathogen, Low Nitrogen"
+
+results <- rbind(sim_no_pathogen_high_nitrogen, 
+                 sim_pathogen_high_nitrogen,
+                 sim_no_pathogen_low_nitrogen,
+                 sim_pathogen_low_nitrogen)
+
+# Plot the results
+ggplot(results, aes(x = time)) +
+  geom_line(aes(y = SN, color = "Native Species")) +
+  geom_line(aes(y = SI, color = "Invasive Species")) +
+  facet_wrap(~Scenario) +
+  labs(title = "Competition Between Native and Invasive Species",
+       x = "Time", y = "Biomass", color = "Species") +
+  theme_minimal()
+
+```
+
