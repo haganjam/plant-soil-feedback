@@ -1,0 +1,85 @@
+---
+title: "02-simulation-lm"
+format: html
+editor: source
+---
+
+# Simulating the data-generating process
+
+The experiment can be logically divided into three separate experiments. The first experiment (Experiment 1) is based on estimating the effect of nitrogen on the strength of the plant-soil feedback for natives only. The second experiment (Experiment 2) estimates the effect of nitrogen on the strength of the plant-soil feedback for invasives only. And, finally, the third experiment (Experiment 3) examines whether the competitive effect of invasives on natives changes with nitrogen and microbes.
+
+## Experiment 1:
+
+In the first experiment, our generative model is based on modelling the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M). We can represent this with a very simple Directed Acyclic Graph (DAG):
+
+```{r}
+dag1 <- dagitty::dagitty(x = 'dag {
+bb="0,0,1,1"
+N [pos="0.28,0.17"]
+L [pos="0.28,0.29"]
+P [pos="0.17,0.29"]
+N -> L
+P -> L
+}'
+)
+plot(dag1)
+```
+We can model this as a simple linear model:
+
+$$
+ log(L_{i}) \sim Normal(\mu_{i}, \sigma_{residual}) \\
+ \mu_{i} = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i}
+$$
+
+```{r}
+# set the number of replicates
+n_rep <- 5
+
+# residual standard deviation
+sigma_residual <- 0.25
+
+# nitrogen-levels
+N_lev <- c(1, 3, 5, 7, 9)
+
+# soil microbe presence-absence
+M_lev <- c(0, 1)
+
+# simulate the nitrogen values
+N <- rep(rep(N_lev,  each = n_rep), length(M_lev))
+
+# simulate the microbe presence-absence
+M <- rep(M_lev, each = length(N_lev)*n_rep)
+```
+
+
+```{r}
+# set the model parameters
+
+# alpha - mean plant biomass without microbes
+alpha <- 5
+
+# beta1 - expected change in mean plant biomass without microbes
+beta1 <- 1.5
+
+# beta2 - expected change in mean plant biomass with and without microbes when N is zero
+beta2 <- -0.5
+
+# beta3 - additional change in the effect of N on mean plant biomass with microbes compareed to without microbes
+beta3 <- -0.5
+```
+
+
+```{r}
+# simulate the expected log plant biomass
+mu <- alpha + (beta1 * N) + (beta2 * M) + (beta3 * N * M)
+
+# simulate the observed log plant biomass
+log_L <- rnorm(n = length(mu), mean = mu, sd = sigma_residual)
+
+```
+
+
+
+
+
+
