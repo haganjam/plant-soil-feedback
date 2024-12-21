@@ -4,42 +4,43 @@ format: html
 editor: source
 ---
 
-# Simulating the data-generating process
+```{r}
+library(ggplot2)
+```
+
+
+# Simulating from the hypothesised data-generating process
 
 The experiment can be logically divided into three separate experiments. The first experiment (Experiment 1) is based on estimating the effect of nitrogen on the strength of the plant-soil feedback for natives only. The second experiment (Experiment 2) estimates the effect of nitrogen on the strength of the plant-soil feedback for invasives only. And, finally, the third experiment (Experiment 3) examines whether the competitive effect of invasives on natives changes with nitrogen and microbes.
 
-## Experiment 1:
-
-In the first experiment, our generative model is based on modelling the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M). We can represent this with a very simple Directed Acyclic Graph (DAG):
+To develop the simulation, we focused on the first experiment. This served as the base for the rest of the simulations we used to conduct the power analysis. Specifically, the generative model is based on modelling the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M). We can represent this with a very simple Directed Acyclic Graph (DAG):
 
 ```{r}
 dag1 <- dagitty::dagitty(x = 'dag {
 bb="0,0,1,1"
-N [pos="0.28,0.17"]
 L [pos="0.28,0.29"]
-P [pos="0.17,0.29"]
+M [pos="0.215,0.200"]
+N [pos="0.35,0.200"]
+M -> L
 N -> L
-P -> L
 }'
 )
 plot(dag1)
 ```
-We can model this as a simple linear model:
+This DAG can be modelled this as a simple linear model. However, we are interested in the *proportional* changes in native plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale:
 
 $$
- log(L_{i}) \sim Normal(\mu_{i}, \sigma_{residual}) \\
- \mu_{i} = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i}
+L_{i} = \alpha \cdot e^{\beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}} \\
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
 $$
+Which we simulate in the following way. First, we simulate the data based on the experimental design. The experimental design crosses five levels of nitrogen (4, 8, 16, 32 and 64 mg) (N) with the presence or absence of conditioned microbes (M). For this initial simulation, we set the number of replicates (n_rep) to 100 per treatment combination as we are interested in making sure the model works.
 
 ```{r}
 # set the number of replicates
-n_rep <- 5
-
-# residual standard deviation
-sigma_residual <- 0.25
+n_rep <- 100
 
 # nitrogen-levels
-N_lev <- c(1, 3, 5, 7, 9)
+N_lev <- log(c(4, 8, 16, 32, 64))
 
 # soil microbe presence-absence
 M_lev <- c(0, 1)
@@ -47,37 +48,699 @@ M_lev <- c(0, 1)
 # simulate the nitrogen values
 N <- rep(rep(N_lev,  each = n_rep), length(M_lev))
 
+# transform so that the intercept represents the lowest level of nitrogen
+N <- (N - min(N))
+
 # simulate the microbe presence-absence
 M <- rep(M_lev, each = length(N_lev)*n_rep)
 ```
 
+Next, we set-up some model parameters. The $\beta$ parameters in the model represent the proportional change in plant biomass on the natural scale. These parameters therefore need to be carefully chosen so that they make sense on the log-scale. For the purposes of this initial simulation, this is not that important but we provide the transformation so that the interpretation the natural scale is also clear:
 
 ```{r}
 # set the model parameters
 
-# alpha - mean plant biomass without microbes
-alpha <- 5
+# residual standard deviation
+sigma_residual <- 0.10
 
-# beta1 - expected change in mean plant biomass without microbes
-beta1 <- 1.5
+# alpha - mean plant biomass without microbes on the log-scale
+alpha <- 1.5
+
+# beta1 - expected change in mean plant biomass without microbes on the log-scale
+beta1 <- 0.2
+print(paste0("beta1: ", round(exp(beta1) - 1, 2)*100, " % change in plant biomass for a one unit increase in N"))
 
 # beta2 - expected change in mean plant biomass with and without microbes when N is zero
-beta2 <- -0.5
+beta2 <- -0.12
+print(paste0("beta2: ", round(exp(beta2) - 1, 2)*100, " % change in plant biomass with microbes"))
 
 # beta3 - additional change in the effect of N on mean plant biomass with microbes compareed to without microbes
-beta3 <- -0.5
+beta3 <- 0
+print(paste0("beta3: ", round(exp(beta3) - 1, 2)*100, " % change in plant biomass for a simultaneous increase in N by one unit and with microbes beyond their individual effects"))
+```
+Using this generative model, we can simulate the observed native plant biomass (L) on the natural-scale as follows:
+
+```{r}
+# simulate the expected log plant biomass
+mu <- (exp((beta1 * N) + (beta2 * M) + (beta3 * N * M) + rnorm(n = length(N), 0, sigma_residual)))
+
+# simulate the observed log plant biomass
+L <- alpha*mu
+```
+
+Using these simulated data, we fit a linear model on the log scale and therefore we transform the model as follows:
+
+$$
+log(L_{i}) = log(\alpha) + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i} \\
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$
+After fitting the model and inspecting the parameters, we can see that we can recover the simulated parameters very closely (note that the intercept needs to be exponentiated).
+
+```{r}
+# fit the linear model
+lm1 <- lm(log(L) ~ N + M + N:M)
+
+# extract the summary
+lm1_sum <- summary(lm1)
+
+# print the summary
+lm1_sum$sigma
+lm1_sum
+```
+
+Let's visualise these data and see what we get. Based on the simulations, N positively affects L, M negatively affects L and there is no interaction between N and M i.e. the effect of M on L does not change with N (or *vice versa*). Below, we have plotted the data on the log-scale on the left and on the natural-scale on the right. As we simulated, there is no interaction between N and M on the log-scale (i.e. the lines are parallel). This makes sense because we specified $\beta_3$ as zero in the simulation. However, on the natural-scale, the lines are not perfectly parallel which suggests that there is an interaction on the natural scale. What is going on here? Because we have used the log-scale, the proportional change in plant biomass L with and without microbes is equal across N-levels (i.e. parallel lines on the log-scale). However, in absolute terms, the difference in plant biomass (L) with and without microbes (M) is bigger with higher N.
+
+```{r}
+# plot the data on the log-scale
+p1 <- 
+  ggplot(mapping = aes(x = N, y = log(L), colour = as.character(M))) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# plot the data on the natural scale
+p2 <- 
+  ggplot(mapping = aes(x = N, y = L, colour = as.character(M))) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+cowplot::plot_grid(p1, p2, nrow = 1)
+```
+
+Indeed, if we calculate plant-soil feedback using the following metric, we can confirm that the strength of the plant-soil feedback (PSF) in proportion terms does not change with N where $\overline{L}$ is the average across replicates of plant biomass:
+
+$$
+PSF_j = \frac{\overline{L}_{microbes} - \overline{L}_{no \ microbes}}{\overline{L}_{no \ microbes}}
+$$
+
+If we plot this metric of plant-soil feedback with N, we will see that there is no change in the strength of the plant-soil feedback with N in proportional terms:
+
+```{r}
+# calculate plant-soil feedback metric
+e1_dat <- dplyr::tibble(N = N,
+                        M = M,
+                        L = L)
+
+# check the data
+e1_dat_wide <- 
+  e1_dat |>
+  dplyr::group_by(N, M) |>
+  dplyr::summarise(L_m = mean(L)) |>
+  tidyr::pivot_wider(id_cols = "N",
+                     names_from = "M",
+                     values_from = "L_m")
+names(e1_dat_wide) <- c("N", "M_abs", "M_pres")
+
+# calculate plant-soil feedback
+e1_dat_wide$psf <- with(e1_dat_wide, (M_pres-M_abs)/M_abs)
+e1_dat_wide$log_psf <- with(e1_dat_wide, log(M_pres/M_abs))
+
+# plot the data with Elias' metric
+p1 <-
+  ggplot(data = e1_dat_wide,
+       mapping = aes(x = N, y = psf)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal()
+
+# plot the data with the log response-ratio
+p2 <-
+  ggplot(data = e1_dat_wide,
+       mapping = aes(x = N, y = log_psf)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal()
+
+cowplot::plot_grid(p1, p2, nrow = 1)
+```
+This simple simulation confirms that we can use the interaction term (i.e. $\beta_3$) as a way to determine whether the plant-soil feedback changes with nitrogen (N) (see also Bates et al. 2019, Plant Ecology). It is easy to modify the strength of the interaction term in the above-code to see how this leads to positive or negative changes in plant-soil feedback.
+
+We want to use this simulation to estimate the power of detecting a change in plant-soil feedback (i.e. a $\beta_3$ parameter that differs significantly from zero). For this, we start by wrapping this code into a function where the various parameters can easily be changed:
+
+```{r}
+#' @param group Character. Native or Invasive species ("L", "I").
+#' @param n_rep Integer. Number of replicates for each nitrogen-microbe combination.
+#' @param sigma_residual Numeric. Residual standard deviation for log biomass.
+#' @param N_lev Numeric vector. Log-transformed nitrogen levels.
+#' @param M_lev Numeric vector. Soil microbe presence-absence (0 for absence, 1 for presence).
+#' @param alpha Numeric. Intercept representing the mean biomass without microbes on the log scale.
+#' @param beta1 Numeric. Expected change in mean biomass with increasing nitrogen without microbes.
+#' @param beta2 Numeric. Effect of microbes on mean biomass when nitrogen level is zero.
+#' @param beta3 Numeric. Additional change in the effect of nitrogen with microbes compared to without microbes.
+
+simulate_species_alone <- function(
+  group = "L",
+  n_rep = 10,
+  sigma_residual = 0.15, 
+  N_lev = log(c(4, 8, 16, 32, 64)),
+  M_lev = c(0, 1),
+  alpha = 1.5,
+  beta1 = 0.2,
+  beta2 = -0.12,
+  beta3 = 0
+) {
+  # simulate nitrogen values
+  N <- rep(rep(N_lev, each = n_rep), length(M_lev))
+  
+  # transform nitrogen so that intercept represents the lowest level of nitrogen
+  N <- (N - min(N))
+  
+  # simulate microbe presence-absence
+  M <- rep(M_lev, each = length(N_lev) * n_rep)
+  
+  # simulate the expected log plant biomass
+  mu <- (beta1 * N) + (beta2 * M) + (beta3 * N * M) + rnorm(n = length(N), mean = 0, sd = sigma_residual)
+  
+  # transform back from log-scale and apply alpha
+  Y <- alpha * exp(mu)
+  
+  # return the simulated data as a data frame
+  dplyr::tibble("N" = N, "M" = M, group = Y)
+}
+```
+
+We then wrap this simulation into an additional function that allows us to simulate these data under the null hypothesis (e.g. $\beta_3$ = 0) and under some alternative hypothesis (e.g. $\beta_3$ = -0.10). The other parameters can also be varied so that we can estimate the power of our test given some null and alternative hypothesis conditional on, for example, a residual standard deviation of 0.10 ($\sigma_{residual}$).
+
+```{r}
+#' @param n_sim - number of simulations to run of the experiment
+#' @param beta3_h0 - beta3 under the null hypothesis
+#' @param beta3_ha - beta3 under the alternative hypothesis
+# 
+species_alone_power <- function(
+    n_sim = 10,
+    alpha_rej = 0.05,
+    group = "L",
+    n_rep = 100,                  
+    sigma_residual = 0.15,        
+    N_lev = log(c(4, 8, 16, 32, 64)), 
+    M_lev = c(0, 1),              
+    alpha = 1.5,                  
+    beta1 = 0.2,                  
+    beta2 = -0.12,                
+    beta3_h0 = 0,
+    beta3_ha = -0.05) {
+  
+  # initialize vectors to store Type I and Type II errors
+  type_I_errors <- vector(length = n_sim)
+  type_II_errors <- vector(length = n_sim)
+  
+  # simulate under H0 (Null Hypothesis)
+  for (i in seq_len(n_sim)) {
+    
+    # generate data under H0
+    data_h0 <- 
+      simulate_species_alone(
+        group = group,
+        n_rep = n_rep,
+        sigma_residual = sigma_residual,   
+        N_lev = N_lev, 
+        M_lev = M_lev, 
+        alpha = alpha,
+        beta1 = beta1,
+        beta2 = beta2,
+        beta3 = beta3_h0)
+    
+    # rename the data
+    names(data_h0) <- c("N", "M", "Y")
+    
+    # fit the model under H0
+    model_h0 <- lm(log(Y) ~ N + M + N:M, data_h0)
+    
+    # extract the relevant p-value
+    p_value_h0 <- coef(summary(model_h0))["N:M", "Pr(>|t|)"]
+    
+    # collect Type I error
+    type_I_errors[i] <- as.numeric(p_value_h0 < alpha_rej)
+  
+    }
+  
+  # simulate under HA (Alternative Hypothesis)
+  for (i in seq_len(n_sim)) {
+    
+    # generate data under HA
+    data_ha <- 
+      simulate_species_alone(
+        group = group,
+        n_rep = n_rep,
+        sigma_residual = sigma_residual,   
+        N_lev = N_lev, 
+        M_lev = M_lev, 
+        alpha = alpha,
+        beta1 = beta1,
+        beta2 = beta2,
+        beta3 = beta3_ha)
+    
+    # rename the data
+    names(data_ha) <- c("N", "M", "Y")
+    
+    # fit the model under H0
+    model_ha <- lm(log(Y) ~ N + M + N:M, data_ha)
+    
+    # extract the relevant p-value
+    p_value_ha <- coef(summary(model_ha))["N:M", "Pr(>|t|)"]
+    
+    # collect Type I error
+    type_II_errors[i] <- as.numeric(p_value_ha >= alpha_rej)
+    
+  }
+  
+  # calculate metrics
+  type_I_error_rate <- sum(type_I_errors, na.rm = TRUE) / length(na.omit(type_I_errors))
+  type_II_error_rate <- sum(type_II_errors, na.rm = TRUE) / length(na.omit(type_II_errors))
+  power <- 1 - type_II_error_rate
+  
+  # return results
+  list(
+    type_I_error_rate = type_I_error_rate,
+    type_II_error_rate = type_II_error_rate,
+    power = power
+  )
+  
+}
+```
+
+As a test of this function, we can run a power analysis for a specific set of parameters:
+
+```{r}
+# test the function for running the power analysis
+power_test <- 
+  species_alone_power(n_sim = 1000,
+                      alpha_rej = 0.05,
+                      group = "L",
+                      n_rep = 7,                  
+                      sigma_residual = 0.15,        
+                      N_lev = log(c(4, 8, 16, 32, 64)), 
+                      M_lev = c(0, 1),              
+                      alpha = 1.5,                  
+                      beta1 = 0.15,                  
+                      beta2 = -0.29,                
+                      beta3_h0 = 0,
+                      beta3_ha = -0.1)
+
+# print the results
+power_test
+```
+We will use this function to conduct a power analysis for experiment 1 and experiment 2 (as they have a similar structure).
+
+## Experiment 1:
+
+For the power analysis for experiment 1, we needed to obtain reasonable estimates for four parameters: $\alpha$, $\beta_1$, $\beta_2$ and $\sigma_{residual}$. Based on the experimental design and the way that we have decided to set-up the model, $\alpha$ represents the mean native plant biomass (L) on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with these native species indicates that 4.5 g is reasonable for the dry-weight of these plants without microbes and at low nitrogen values (e.g. Goossens et al. 2023, *npj biodiversity*). For the effect of nitrogen (N), we used estimates from Minden and Olde Venterinck (2019, *Functional Ecology*) where, for these native species, an increase of between 0 and 15% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e. microbes, M) was taken from Schitzer et al. (2011, *Ecology*) who measured a reduction of plant biomass of between 10 and 40% due to the presence of microbes. Finally, we estimated $\sigma_{residual}$ based on data from a previous, unpublished experiment on the same species (MSc thesis). 
+
+Based on these estimates, we performed the simulations for combinations of these values:
+
++ $\alpha$ = 1.5 (4.5 g on the natural scale)
++ $\beta_1$ = 5%, 10% or 15% increase in biomass with N on the natural-scale
++ $\beta_2$ = 10%, 25% or 40% decrease in biomass with microbes on the natural-scale for the lowest level of N
++ $\sigma_{residual}$ = 0.05, 0.10, 0.15, 0.20, 0.25 on the log-scale
+
+Additionally, we varied the number of replicates per treatment combination between 3 and 12 (the upper limit that is experimentally tractable given facilities).
+
+Our hypothesis is based on the $\beta_3$ parameter being negative. Therefore, we estimated power based on four hypothesised values:
+
++ $\beta_3$ = 2.5%, 5%, 7.5% or 10% decrease in biomass with a simultaneous increase of N by 1 unit and the presence of microbes on the natural-scale beyond the effects of each alone
+
+```{r}
+# set-up the parameters
+
+# convert percentage to parameter for the log-scale
+par_target <- function(target) log(1 + target)
+
+# number of replicates
+n_rep <- seq(3, 12, 1)
+
+# alpha - mean plant biomass without microbes on the log-scale
+alpha <- 1.5
+
+# beta1 - expected change in mean plant biomass with N without microbes on the log-scale
+beta1 <- sapply(c(0.05, 0.10, 0.15), par_target)
+
+# beta2 - expected change in mean plant biomass with and without microbes when N is minimum
+beta2 <- sapply(c(-0.10, -0.25, -0.40), par_target)
+
+# beta3 - additional change in the effect of N on mean plant biomass with microbes compared to without microbes
+beta3 <- sapply(c(-0.10, -0.075, -0.05, -0.025), par_target)
+
+# sigma residual
+sigma_residual <- c(0.05, 0.10, 0.15, 0.20, 0.25)
+
+# pull the parameter list into a data.frame
+params <- expand.grid(n_rep = n_rep, 
+                      alpha = alpha, beta1 = beta1, 
+                      beta2 = beta2, beta3 = beta3, 
+                      sigma_residual = sigma_residual)
+
+# convert to a tibble
+params <- dplyr::as_tibble(params)
+
+# print the first few rows
+head(params)
+```
+
+```{r}
+# loop over each of these parameter combinations
+power_list <- vector("list", length = nrow(params))
+for (i in seq_along(power_list)) {
+  
+  # get the input parameters
+  input_pars <- params[i, ]
+  
+  # run the simulation
+  power_sim_data <- 
+    species_alone_power(n_sim = 100,
+                        alpha_rej = 0.05,
+                        group = "L",
+                        n_rep = input_pars$n_rep,                  
+                        sigma_residual = input_pars$sigma_residual,        
+                        N_lev = log(c(4, 8, 16, 32, 64)), 
+                        M_lev = c(0, 1),              
+                        alpha = input_pars$alpha,                  
+                        beta1 = input_pars$beta1,                  
+                        beta2 = input_pars$beta2,                
+                        beta3_h0 = 0,
+                        beta3_ha = input_pars$beta3)
+  
+  # add the type I error, type II error and power to a list
+  power_list[[i]] <-  
+    dplyr::tibble(run = i,
+                  type_1_error = power_sim_data$type_I_error_rate,
+                  type_2_error = power_sim_data$type_II_error_rate,
+                  power = power_sim_data$power)
+  
+}
+
+# bind into a data.frame
+power_data <- dplyr::bind_rows(power_list)
+head(power_data)
+
+# bind to the parameter data
+power_e1 <- dplyr::bind_cols(params, power_data)
+
+# print the first few rows
+head(power_e1)
+```
+
+```{r}
+# summarise the data for plotting
+power_e1$beta3 <- paste0((exp(power_e1$beta3) - 1)*100, "%")
+
+# summarise the data
+power_e1_sum <-
+  power_e1 |>
+  dplyr::mutate(beta3 = as.character(beta3)) |>
+  dplyr::group_by(sigma_residual, beta3, n_rep) |>
+  dplyr::summarise(power_med = median(power),
+                   quantile_low = quantile(power, 0.10),
+                   quantile_high = quantile(power, 0.90))
+
+# plot the data
+ggplot(data = power_e1_sum,
+       mapping = aes(x = n_rep, y = power_med, colour = beta3)) +
+  geom_errorbar(mapping = aes(x = n_rep, 
+                              ymin = quantile_low, ymax = quantile_high,
+                              colour = beta3),
+                width = 0) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = 5, linetype = "dashed") +
+  geom_hline(yintercept = 0.70, linetype = "dashed") +
+  facet_wrap(~sigma_residual) +
+  theme_minimal()
+```
+
+
+## Experiment 2:
+
+For the power analysis for experiment 1, we needed to obtain reasonable estimates for four parameters: ($\alpha$), ($\beta_1$), ($\beta_2$), and ($\sigma_\text{residual}$). Based on the experimental design and the way we have decided to set up the model, ($\alpha$) represents the mean biomass (L) of invasive species on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with *Solidago gigantea* indicates that 4.5 g is reasonable for the dry weight of these plants without microbes at low nitrogen levels (e.g., Kyle Coppens, MSc thesis: 2023). For the effect of nitrogen (N), we used estimates from Wan et al. (2019, *Journal of Plant Ecology*), where, for *Solidago canadensis*, an increase of between 50% and 300% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e., microbes, M) was taken from the MSc thesis by Kyle Coppens (2023), which reported a reduction of plant biomass of between 5% and 25% due to the presence of microbes. Finally, we estimated ($\sigma_\text{residual}$) based on data from a previous, unpublished experiment on the same species (MSc thesis).  
+
+Based on these estimates, we performed simulations for combinations of these values:
+
+- $\alpha$ = 1.5 g on the natural scale)
+- $\beta_1$ = 50%, 150% or 300% increase in biomass with N on the natural scale  
+- $\beta_2$ = 5%, 15% or 25% decrease in biomass with microbes on the natural scale for the lowest level of \(N\)  
+- $\sigma_\text{residual}$ = 0.05, 0.10, 0.15, 0.20, 0.25 on the log-scale  
+
+Additionally, we varied the number of replicates per treatment combination between 3 and 12 (the upper limit that is experimentally tractable given facilities).
+
+Our hypothesis is based on the $\beta_3$ parameter being negative. Therefore, we estimated power based on four hypothesized values:
+
+- $\beta_3$ = 2.5%, 5%, 7.5% or 10% decrease in biomass with a simultaneous increase of N by 1 unit and the presence of microbes on the natural scale beyond the effects of each alone.
+
+```{r}
+# set-up the parameters
+
+# convert percentage to parameter for the log-scale
+par_target <- function(target) log(1 + target)
+
+# number of replicate simulations
+sim_rep <- seq(1, 10, 1)
+
+# number of replicates
+n_rep <- seq(3, 10, 1)
+
+# alpha - mean plant biomass without microbes on the log-scale
+alpha <- 1.5
+
+# beta1 - expected change in mean plant biomass with N without microbes on the log-scale
+beta1 <- sapply(c(0.5, 1.5, 3), par_target)
+
+# beta2 - expected change in mean plant biomass with and without microbes when N is minimum
+beta2 <- sapply(c(-0.05, -0.15, -0.25), par_target)
+
+# beta3 - additional change in the effect of N on mean plant biomass with microbes compared to without microbes
+beta3 <- sapply(c(-0.10, -0.075, -0.05, -0.025), par_target)
+
+# sigma residual
+sigma_residual <- c(0.05, 0.10, 0.25, 0.3)
+
+# pull the parameter list into a data.frame
+params <- expand.grid(sim_rep = sim_rep, n_rep = n_rep, 
+                      alpha = alpha, beta1 = beta1, 
+                      beta2 = beta2, beta3 = beta3, 
+                      sigma_residual = sigma_residual)
+
+# convert to a tibble
+params <- dplyr::as_tibble(params)
+
+# print the first few rows
+head(params)
+```
+
+```{r}
+# loop over each of these parameter combinations
+power_list <- vector("list", length = nrow(params))
+for (i in seq_along(power_list)) {
+  
+  # get the input parameters
+  input_pars <- params[i, ]
+  
+  # run the simulation
+  power_sim_data <- 
+    species_alone_power(n_sim = 100,
+                        alpha_rej = 0.05,
+                        group = "L",
+                        n_rep = input_pars$n_rep,                  
+                        sigma_residual = input_pars$sigma_residual,        
+                        N_lev = log(c(4, 8, 16, 32, 64)), 
+                        M_lev = c(0, 1),              
+                        alpha = input_pars$alpha,                  
+                        beta1 = input_pars$beta1,                  
+                        beta2 = input_pars$beta2,                
+                        beta3_h0 = 0,
+                        beta3_ha = input_pars$beta3)
+  
+  # add the type I error, type II error and power to a list
+  power_list[[i]] <-  
+    dplyr::tibble(run = i,
+                  type_1_error = power_sim_data$type_I_error_rate,
+                  type_2_error = power_sim_data$type_II_error_rate,
+                  power = power_sim_data$power)
+  
+}
+
+# bind into a data.frame
+power_data <- dplyr::bind_rows(power_list)
+head(power_data)
+
+# bind to the parameter data
+power_e2 <- dplyr::bind_cols(params, power_data)
+
+# print the first few rows
+head(power_e2)
+```
+```{r}
+# summarise the data for plotting
+power_e2$beta3 <- paste0((exp(power_e2$beta3) - 1)*100, "%")
+
+# summarise the data
+power_e2_sum <-
+  power_e2 |>
+  dplyr::mutate(beta3 = as.character(beta3)) |>
+  dplyr::group_by(sigma_residual, beta3, n_rep) |>
+  dplyr::summarise(power_med = median(power),
+                   quantile_low = quantile(power, 0.10),
+                   quantile_high = quantile(power, 0.90))
+
+# plot the data
+ggplot(data = power_e2_sum,
+       mapping = aes(x = n_rep, y = power_med, colour = beta3)) +
+  geom_errorbar(mapping = aes(x = n_rep, 
+                              ymin = quantile_low, ymax = quantile_high,
+                              colour = beta3),
+                width = 0) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = 5, linetype = "dashed") +
+  geom_hline(yintercept = 0.70, linetype = "dashed") +
+  facet_wrap(~sigma_residual) +
+  theme_minimal()
+```
+
+
+## Experiment 3:
+
+In this experiment, we are interested in whether the competitive effect of invasives (I) on natives (L) increases with nitrogen (N) in the presence of microbes (M). This is a three-way interaction term. In this case, our hypothesis is that the three-way interaction term is negative because this would imply that the competitive effect of invasives on natives changes with nitrogen but only in the presence of microbes.
+
+Note that, in this experiment, we are manipulating the presence-absence of invasives and, therefore, the I term in the models is a zero-one term indicating the absence or presence of an invasive in the pot.
+
+```{r}
+dag3 <- dagitty::dagitty(x = 'dag {
+bb="0,0,1,1"
+I [exposure,pos="0.284,0.180"]
+L [outcome,pos="0.285,0.300"]
+M [pos="0.153,0.180"]
+N [pos="0.418,0.180"]
+I -> L
+M -> L
+N -> L
+}
+'
+)
+plot(dag3)
+```
+
+
+$$
+L_{i} = \alpha \cdot e^{\beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}} \\
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$
+
+Let's develop this generative model. We start with the experimental treatments.
+
+```{r}
+# set the number of replicates
+n_rep <- 100
+
+# nitrogen-levels
+N_lev <- log(c(4, 8, 16, 32, 64))
+
+# soil microbe presence-absence
+M_lev <- c(0, 1)
+
+# invasive presence-absence
+I_lev <- c(0, 1)
+
+# create a grid of parameters
+par_grid <- expand.grid(rep = seq_len(n_rep),
+                        N = N_lev, M = M_lev, I = I_lev)
+
+# extract the variables
+N <- par_grid[["N"]]
+M <- par_grid[["M"]]
+I <- par_grid[["I"]]
+
+# set the model parameters
+
+# residual standard deviation
+sigma_residual <- 0.10
+
+# alpha - mean plant biomass without microbes on the log-scale
+alpha <- 1.5
+
+# beta1 - expected change in mean plant biomass without microbes on the log-scale
+beta1 <- 0.10
+
+# beta2 - expected change in mean plant biomass with and without microbes when N is zero without invasives
+beta2 <- -0.25
+
+# beta3 - expected change in mean plant biomass with and without invasives when N is zero without microbes
+beta3 <- -0.10
+
+# beta4
+beta4 <- -0.05
+
+# beta5
+beta5 <- 0
+
+# beta6
+beta6 <- 0
+
+# beta7
+beta7 <- 0
+
+# sigma residual
+sigma_residual <- 0.05
+
 ```
 
 
 ```{r}
 # simulate the expected log plant biomass
-mu <- alpha + (beta1 * N) + (beta2 * M) + (beta3 * N * M)
+mu <- (exp((beta1 * N) + (beta2 * M) + (beta3 * I) + (beta4 * N * M) + (beta5 * I * M) + (beta6 * I * N) + (beta7 * N * M * I) + rnorm(n = length(N), 0, sigma_residual)))
 
 # simulate the observed log plant biomass
-log_L <- rnorm(n = length(mu), mean = mu, sd = sigma_residual)
+L <- alpha*mu
+```
+
+
+```{r}
+# pull into a data.frame for plotting
+data <- dplyr::tibble(N = N, M = as.character(M), I = as.character(I), L)
+
+ggplot(data = data,
+       mapping = aes(x = N, y = L, colour = I)) +
+  geom_point() +
+  geom_smooth(method ="lm") +
+  facet_wrap(~ M) +
+  theme_minimal()
+  
+```
+
+
+```{r}
+# fit the model
+lm_e1 <- lm(log(L) ~ N + M + I + N:M + I:M + I:N + M:I:N, data = data)
+summary(lm_e1)
+```
+
+```{r}
+# calculate competition by comparing natives with and without invasives
+comp_sum <-
+  data |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(mean_L = mean(L)) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(id_cols = c("N", "M"),
+                     names_from = "I",
+                     values_from = "mean_L")
+names(comp_sum) <- c("N", "M", "without_I", "with_I")
+
+# calculate competition
+comp_sum$competition <- with(comp_sum, with_I/without_I)
+
+# plot the data
+ggplot(data = comp_sum,
+       mapping = aes(x = N, y = competition, colour = M)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal()
 
 ```
 
+
+Check everything with the simple analysis of the derived variables... Because this is more intuitive than the more complex model-based analysis (although the latter is considerably more powerful).
 
 
 
