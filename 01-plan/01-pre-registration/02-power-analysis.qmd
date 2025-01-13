@@ -1,6 +1,6 @@
 ---
 title: "02-simulation-lm"
-format: html
+format: gfm
 editor: source
 ---
 
@@ -9,11 +9,11 @@ library(ggplot2)
 ```
 
 
-# Simulating from the hypothesised data-generating process
+# Simulating from the hypothesised data-generating process for power analysis
 
 The experiment can be logically divided into three separate experiments. The first experiment (Experiment 1) is based on estimating the effect of nitrogen on the strength of the plant-soil feedback for natives only. The second experiment (Experiment 2) estimates the effect of nitrogen on the strength of the plant-soil feedback for invasives only. And, finally, the third experiment (Experiment 3) examines whether the competitive effect of invasives on natives changes with nitrogen and microbes.
 
-To develop the simulation, we focused on the first experiment. This served as the base for the rest of the simulations we used to conduct the power analysis. Specifically, the generative model is based on modelling the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M). We can represent this with a very simple Directed Acyclic Graph (DAG):
+To develop the simulation, we focused on the first experiment. This served as the base for the rest of the simulations that we used to conduct the power analysis. Specifically, the generative model is based on modelling the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M). We can represent this with a very simple Directed Acyclic Graph (DAG):
 
 ```{r}
 dag1 <- dagitty::dagitty(x = 'dag {
@@ -27,13 +27,14 @@ N -> L
 )
 plot(dag1)
 ```
+
 This DAG can be modelled this as a simple linear model. However, we are interested in the *proportional* changes in native plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale:
 
 $$
 L_{i} = \alpha \cdot e^{\beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}} \\
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
 $$
-Which we simulate in the following way. First, we simulate the data based on the experimental design. The experimental design crosses five levels of nitrogen (4, 8, 16, 32 and 64 mg) (N) with the presence or absence of conditioned microbes (M). For this initial simulation, we set the number of replicates (n_rep) to 100 per treatment combination as we are interested in making sure the model works.
+We simulate this model in the following way. First, we simulate the data based on the experimental design. The experimental design crosses five levels of nitrogen (4, 8, 16, 32 and 64 mg) (N) with the presence or absence of conditioned microbes (M). For this initial simulation, we set the number of replicates (n_rep) to 100 per treatment combination as we are interested in making sure the model works (this will be reduced for the power analysis of course).
 
 ```{r}
 # set the number of replicates
@@ -55,7 +56,7 @@ N <- (N - min(N))
 M <- rep(M_lev, each = length(N_lev)*n_rep)
 ```
 
-Next, we set-up some model parameters. The $\beta$ parameters in the model represent the proportional change in plant biomass on the natural scale. These parameters therefore need to be carefully chosen so that they make sense on the log-scale. For the purposes of this initial simulation, this is not that important but we provide the transformation so that the interpretation the natural scale is also clear:
+Next, we set-up some model parameters. The $\beta$ parameters in the model represents the proportional change in plant biomass on the natural scale. These parameters therefore need to be carefully chosen so that they make sense on the log-scale. For the purposes of this initial simulation, this is not that important but we provide the transformation so that the interpretation the natural scale is also clear:
 
 ```{r}
 # set the model parameters
@@ -63,19 +64,19 @@ Next, we set-up some model parameters. The $\beta$ parameters in the model repre
 # residual standard deviation
 sigma_residual <- 0.10
 
-# alpha - mean plant biomass without microbes on the log-scale
-alpha <- 1.5
+# alpha - mean plant biomass without microbes on the the natural scale
+alpha <- 4.5
 
-# beta1 - expected change in mean plant biomass without microbes on the log-scale
+# beta1 - expected change in mean plant biomass without microbes (log)
 beta1 <- 0.2
 print(paste0("beta1: ", round(exp(beta1) - 1, 2)*100, " % change in plant biomass for a one unit increase in N"))
 
-# beta2 - expected change in mean plant biomass with and without microbes when N is zero
+# beta2 - expected change in mean plant biomass with and without microbes when N is zero (log)
 beta2 <- -0.12
 print(paste0("beta2: ", round(exp(beta2) - 1, 2)*100, " % change in plant biomass with microbes"))
 
-# beta3 - additional change in the effect of N on mean plant biomass with microbes compareed to without microbes
-beta3 <- 0
+# beta3 - additional change in the effect of N on mean plant biomass with microbes compareed to without microbes (log)
+beta3 <- -0.05
 print(paste0("beta3: ", round(exp(beta3) - 1, 2)*100, " % change in plant biomass for a simultaneous increase in N by one unit and with microbes beyond their individual effects"))
 ```
 Using this generative model, we can simulate the observed native plant biomass (L) on the natural-scale as follows:
@@ -108,7 +109,7 @@ lm1_sum$sigma
 lm1_sum
 ```
 
-Let's visualise these data and see what we get. Based on the simulations, N positively affects L, M negatively affects L and there is no interaction between N and M i.e. the effect of M on L does not change with N (or *vice versa*). Below, we have plotted the data on the log-scale on the left and on the natural-scale on the right. As we simulated, there is no interaction between N and M on the log-scale (i.e. the lines are parallel). This makes sense because we specified $\beta_3$ as zero in the simulation. However, on the natural-scale, the lines are not perfectly parallel which suggests that there is an interaction on the natural scale. What is going on here? Because we have used the log-scale, the proportional change in plant biomass L with and without microbes is equal across N-levels (i.e. parallel lines on the log-scale). However, in absolute terms, the difference in plant biomass (L) with and without microbes (M) is bigger with higher N.
+Let's visualise these data and see what we get. Based on the simulations, N positively affects L, M negatively affects L and there is no interaction between N and M i.e. the effect of M on L does not change with N (or *vice versa*). Below, we have plotted the data on the log-scale on the left and on the natural-scale on the right. As we simulated, there is no interaction between N and M on the log-scale (i.e. the lines are parallel). This makes sense because we specified $\beta_3$ as zero in the simulation. However, on the natural-scale, the lines are not perfectly parallel (even though we set the interaction be zero, there is still a very small but non-significant interaction effect) which suggests that there is an interaction on the natural scale. What is going on here? Because we have used the log-scale, the proportional change in plant biomass L with and without microbes is equal across N-levels (i.e. parallel lines on the log-scale). However, in absolute terms, the difference in plant biomass (L) with and without microbes (M) is bigger with higher N.
 
 ```{r}
 # plot the data on the log-scale
@@ -163,7 +164,6 @@ p1 <-
   ggplot(data = e1_dat_wide,
        mapping = aes(x = N, y = psf)) +
   geom_point() +
-  geom_smooth(method = "lm") +
   theme_minimal()
 
 # plot the data with the log response-ratio
@@ -171,11 +171,18 @@ p2 <-
   ggplot(data = e1_dat_wide,
        mapping = aes(x = N, y = log_psf)) +
   geom_point() +
-  geom_smooth(method = "lm") +
   theme_minimal()
 
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
+
+Indeed, calculating Pearson's correlation coefficient for these two plots, show's that the relationship between N and the PSF metric is not significant:
+
+```{r}
+# psf metric on the natural scale
+cor.test(e1_dat_wide$N, e1_dat_wide$psf)
+```
+
 This simple simulation confirms that we can use the interaction term (i.e. $\beta_3$) as a way to determine whether the plant-soil feedback changes with nitrogen (N) (see also Bates et al. 2019, Plant Ecology). It is easy to modify the strength of the interaction term in the above-code to see how this leads to positive or negative changes in plant-soil feedback.
 
 We want to use this simulation to estimate the power of detecting a change in plant-soil feedback (i.e. a $\beta_3$ parameter that differs significantly from zero). For this, we start by wrapping this code into a function where the various parameters can easily be changed:
@@ -343,7 +350,10 @@ power_test <-
 # print the results
 power_test
 ```
-We will use this function to conduct a power analysis for experiment 1 and experiment 2 (as they have a similar structure).
+
+Using these functions, we will conduct a power analysis for experiment 1 and experiment 2 (as they have a similar structure).
+
+## Power analysis:
 
 ## Experiment 1:
 
@@ -351,14 +361,14 @@ For the power analysis for experiment 1, we needed to obtain reasonable estimate
 
 Based on these estimates, we performed the simulations for combinations of these values:
 
-+ $\alpha$ = 1.5 (4.5 g on the natural scale)
++ $\alpha$ = 4.5 g on the natural scale (1.5 on the log-scale)
 + $\beta_1$ = 5%, 10% or 15% increase in biomass with N on the natural-scale
 + $\beta_2$ = 10%, 25% or 40% decrease in biomass with microbes on the natural-scale for the lowest level of N
 + $\sigma_{residual}$ = 0.05, 0.10, 0.15, 0.20, 0.25 on the log-scale
 
-Additionally, we varied the number of replicates per treatment combination between 3 and 12 (the upper limit that is experimentally tractable given facilities).
+Additionally, we varied the number of replicates per treatment combination between 3 and 10 (the upper limit that is experimentally tractable given facilities). 
 
-Our hypothesis is based on the $\beta_3$ parameter being negative. Therefore, we estimated power based on four hypothesised values:
+Our hypothesis is based on the $\beta_3$ parameter being negative (i.e. the effect of . Therefore, we estimated power based on four hypothesised values:
 
 + $\beta_3$ = 2.5%, 5%, 7.5% or 10% decrease in biomass with a simultaneous increase of N by 1 unit and the presence of microbes on the natural-scale beyond the effects of each alone
 
@@ -369,10 +379,10 @@ Our hypothesis is based on the $\beta_3$ parameter being negative. Therefore, we
 par_target <- function(target) log(1 + target)
 
 # number of replicates
-n_rep <- seq(3, 12, 1)
+n_rep <- seq(3, 10, 1)
 
-# alpha - mean plant biomass without microbes on the log-scale
-alpha <- 1.5
+# alpha - mean plant biomass without microbes on the natural scale
+alpha <- 4.5
 
 # beta1 - expected change in mean plant biomass with N without microbes on the log-scale
 beta1 <- sapply(c(0.05, 0.10, 0.15), par_target)
@@ -470,21 +480,20 @@ ggplot(data = power_e1_sum,
   theme_minimal()
 ```
 
-
 ## Experiment 2:
 
-For the power analysis for experiment 1, we needed to obtain reasonable estimates for four parameters: ($\alpha$), ($\beta_1$), ($\beta_2$), and ($\sigma_\text{residual}$). Based on the experimental design and the way we have decided to set up the model, ($\alpha$) represents the mean biomass (L) of invasive species on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with *Solidago gigantea* indicates that 4.5 g is reasonable for the dry weight of these plants without microbes at low nitrogen levels (e.g., Kyle Coppens, MSc thesis: 2023). For the effect of nitrogen (N), we used estimates from Wan et al. (2019, *Journal of Plant Ecology*), where, for *Solidago canadensis*, an increase of between 50% and 300% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e., microbes, M) was taken from the MSc thesis by Kyle Coppens (2023), which reported a reduction of plant biomass of between 5% and 25% due to the presence of microbes. Finally, we estimated ($\sigma_\text{residual}$) based on data from a previous, unpublished experiment on the same species (MSc thesis).  
+For the power analysis for experiment 1, we needed to obtain reasonable estimates for four parameters: ($\alpha$), ($\beta_1$), ($\beta_2$), and ($\sigma_\text{residual}$). Based on the experimental design and the way we have decided to set up the model, ($\alpha$) represents the mean biomass (L) of invasive species on the natural-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with *Solidago gigantea* indicates that 4.5 g is reasonable for the dry weight of these plants without microbes at low nitrogen levels (e.g., Kyle Coppens, MSc thesis: 2023). For the effect of nitrogen (N), we used estimates from Wan et al. (2019, *Journal of Plant Ecology*), where, for *Solidago canadensis*, an increase of between 50% and 300% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e., microbes, M) was taken from the MSc thesis by Kyle Coppens (2023), which reported a reduction of plant biomass of between 5% and 25% due to the presence of microbes. Finally, we estimated ($\sigma_\text{residual}$) based on data from a previous, unpublished experiment on the same species (MSc thesis).  
 
 Based on these estimates, we performed simulations for combinations of these values:
 
-- $\alpha$ = 1.5 g on the natural scale)
+- $\alpha$ = 4.5 g on the natural scale (1.5 on the log-scale)
 - $\beta_1$ = 50%, 150% or 300% increase in biomass with N on the natural scale  
 - $\beta_2$ = 5%, 15% or 25% decrease in biomass with microbes on the natural scale for the lowest level of \(N\)  
 - $\sigma_\text{residual}$ = 0.05, 0.10, 0.15, 0.20, 0.25 on the log-scale  
 
-Additionally, we varied the number of replicates per treatment combination between 3 and 12 (the upper limit that is experimentally tractable given facilities).
+Additionally, we varied the number of replicates per treatment combination between 3 and 10 (the upper limit that is experimentally tractable given facilities).
 
-Our hypothesis is based on the $\beta_3$ parameter being negative. Therefore, we estimated power based on four hypothesized values:
+Our hypothesis is based on the $\beta_3$ parameter being negative (i.e. that plant-soil feedback becomes stronger with N). Therefore, we estimated power based on four hypothesized values:
 
 - $\beta_3$ = 2.5%, 5%, 7.5% or 10% decrease in biomass with a simultaneous increase of N by 1 unit and the presence of microbes on the natural scale beyond the effects of each alone.
 
@@ -501,7 +510,7 @@ sim_rep <- seq(1, 10, 1)
 n_rep <- seq(3, 10, 1)
 
 # alpha - mean plant biomass without microbes on the log-scale
-alpha <- 1.5
+alpha <- 4.5
 
 # beta1 - expected change in mean plant biomass with N without microbes on the log-scale
 beta1 <- sapply(c(0.5, 1.5, 3), par_target)
@@ -598,7 +607,6 @@ ggplot(data = power_e2_sum,
   theme_minimal()
 ```
 
-
 ## Experiment 3:
 
 In this experiment, we are interested in whether the competitive effect of invasives (I) on natives (L) increases with nitrogen (N) in the presence of microbes (M). This is a three-way interaction term. In this case, our hypothesis is that the three-way interaction term is negative because this would imply that the competitive effect of invasives on natives changes with nitrogen but only in the presence of microbes.
@@ -627,7 +635,7 @@ L_{i} = \alpha \cdot e^{\beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
 $$
 
-Let's develop this generative model. We start with the experimental treatments.
+Let's develop this generative model. We start with the experimental treatments as previously. Here, we have five levels of nitrogen (N) increasing on a log-scale, the presence or absence of microbes (M) and the presence or absence of invasive species (I).
 
 ```{r}
 # set the number of replicates
@@ -650,7 +658,11 @@ par_grid <- expand.grid(rep = seq_len(n_rep),
 N <- par_grid[["N"]]
 M <- par_grid[["M"]]
 I <- par_grid[["I"]]
+```
 
+Next, we set-up the model parameters.
+
+```{r}
 # set the model parameters
 
 # residual standard deviation
@@ -678,11 +690,10 @@ beta5 <- 0
 beta6 <- 0
 
 # beta7
-beta7 <- 0
+beta7 <- -0.10
 
 # sigma residual
 sigma_residual <- 0.05
-
 ```
 
 

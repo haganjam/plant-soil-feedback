@@ -1,0 +1,134 @@
+---
+title: "03-analysis-plan"
+format: gfm
+editor: source
+---
+
+# Anticipated data analysis
+
+In this document, we will formalise the sttistical analysis that we intend to do using the data we collect. We will go through each of the three experiments, specify the null and alternative hypotheses and run the analysis on a simulated dataset. We intend to re-use this code when analysing the experimental data.
+
+## Experiment 1:
+
+For experiment 1, the Directed Acyclic Graph representing the causal structure in the experiment. Specifically, the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M).
+
+```{r}
+dag1 <- dagitty::dagitty(x = 'dag {
+bb="0,0,1,1"
+L [pos="0.28,0.29"]
+M [pos="0.215,0.200"]
+N [pos="0.35,0.200"]
+M -> L
+N -> L
+}'
+)
+plot(dag1)
+```
+
+We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. Based on this experimental design, we will use the following linear model to analyse this experiment:
+
+$$
+log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i} \\
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$
+Based on this model, we can set-up the statistical hypotheses as follows:
+
+$$
+H_0: \beta_3 \ge 0
+$$
+$$
+H_A: \beta_3 \lt 0
+$$
+
+Therefore, if $\beta_3$ is significantly less than zero (i.e. $P < 0.025$), we would interpret this as evidence that plant-soil feedback does become stronger with increasing N.
+
+### Simulated data
+
+To design write the code used to perform the above hypothesis tests, we will simulate data that is consistent with this experiment (i.e. the data that we expect to obtain).
+
+```{r}
+# the exact values of the parameters are not that important in this case
+n_rep = 8
+sigma_residual = 0.10
+N_lev = log(c(4, 8, 16, 32, 64))
+M_lev = c(0, 1)
+alpha = 4.5
+beta1 = 0.2
+beta2 = -0.12
+beta3 = -0.1
+
+# simulate nitrogen values
+N <- rep(rep(N_lev, each = n_rep), length(M_lev))
+  
+# simulate microbe presence-absence
+M <- rep(M_lev, each = length(N_lev) * n_rep)
+  
+# simulate the expected log plant biomass
+mu <- (beta1 * (N - min(N))) + (beta2 * M) + (beta3 * (N - min(N)) * M)
+  
+# transform back from log-scale and apply alpha
+Y <- alpha * exp(mu + rnorm(n = length(N), mean = 0, sd = sigma_residual))
+  
+# return the simulated data as a data frame
+dat_e1 <- dplyr::tibble("N" = N, "M" = M, "L" = Y)
+```
+
+### Data analysis
+
+In addition to the standard data cleaning and exploratory data analysis procedures that must occur in any data-driven scientific project, there are two important transformations that need to be done for the analysis. First, we will substract the minimum nitrogen-level (log-scale) so that the lowest nitrogen-level in the model and, therefore, the intercept term represents the expected plant biomass at the lowest-level of nitrogen without microbes. Additionally, we will need to log-transform the plant biomass variable.
+
+```{r}
+# data transformations
+
+# translate nitrogen by the minimum
+dat_e1$N_trans <- with(dat_e1, N - min(N))
+
+# log-transform plant biomass
+dat_e1$L_log <- log(dat_e1$L)
+
+# check the data
+head(dat_e1)
+```
+
+Now we are ready to fit the model:
+
+```{r}
+# fit the statistical model
+lm_e1 <- lm(L_log ~ M + N_trans + M:N_trans, data = dat_e1)
+```
+
+Prior to interpreting the results, we need to check the model assumptions. We will do this using a graphical analysis of the residuals. Specifically, we will check that the distribution of the model residuals are at least approximately normal:
+
+```{r}
+# check for residual normality
+lm_e1_res <- residuals(lm_e1)
+
+# plot a qqplot of the residuals
+qqnorm(lm_e1_res, main = "Residual Q-Q Plot")
+qqline(lm_e1_res, col = "red")
+```
+
+Next, we will test the homogeneity of variance assumption by examining a plot of the residuals versus the fitted values. There should be no pattern in the data:
+
+```{r}
+# plot residuals vs fitted values
+plot(lm_e1$fitted.values, residuals(lm_e1), 
+     xlab = "Fitted Values", 
+     ylab = "Residuals", 
+     main = "Residuals vs Fitted Values",
+     pch = 20, col = "blue")
+
+# add a horizontal line at 0 for reference
+abline(h = 0, col = "red", lty = 2)
+```
+
+If these assumptions are met as indicated by the graphs above (although whether the assumptions are met will always be a judgement call), we can then examine the results and evaluate our hypothesis:
+
+```{r}
+# check the model summary
+summary(lm_e1)
+```
+
+In this output, the $\beta_3$ parameter is the "M:N_trans" parameter. This output indicates that $\beta_3$ is significantly less than zero ($t_1 = -4.03; P = 0.00013$). Therefore, we would reject our null hypothesis ($H_0: \beta_3 \ge 0$) and infer support for our alternative hypothesis ($H_0: \beta_3 < 0$).
+
+

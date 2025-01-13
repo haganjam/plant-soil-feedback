@@ -1,11 +1,10 @@
 ---
 title: "Pre-registration"
-format: html
+format: gfm
 editor: source
 ---
 
 ## 1. Project Plan:
-
 
 ## Objective
 
