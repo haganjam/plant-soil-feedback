@@ -41,26 +41,21 @@ stronger negative effect on plant biomass) with increasing nitrogen.
 Based on this experimental design, we will use the following linear
 model to analyse this experiment:
 
-$$
-\begin{aligned}
-log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-\end{aligned}
-$$ $$
-\begin{aligned}
-\epsilon_{i} \sim Normal(0, \sigma_{residual})
-\end{aligned}
-$$ Based on this model, we can set-up the statistical hypotheses as
+![log(L\_{i}) = \alpha + \beta_1\text{N}\_{i} + \beta_2\text{M}\_{i} + \beta_3\text{N}\_{i}\text{M}\_{i} + \epsilon\_{i}](log%28L_%7Bi%7D%29%20%3D%20%5Calpha%20%2B%20%5Cbeta_1%5Ctext%7BN%7D_%7Bi%7D%20%2B%20%5Cbeta_2%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cbeta_3%5Ctext%7BN%7D_%7Bi%7D%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cepsilon_%7Bi%7D "log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}")
+
+![\epsilon\_{i} \sim Normal(0, \sigma\_{residual})](%5Cepsilon_%7Bi%7D%20%5Csim%20Normal%280%2C%20%5Csigma_%7Bresidual%7D%29 "\epsilon_{i} \sim Normal(0, \sigma_{residual})")
+
+Based on this model, we can set-up the statistical hypotheses as
 follows:
 
-$$
-H_0: \beta_3 \ge 0
-$$ $$
-H_A: \beta_3 \lt 0
-$$
+![H_0: \beta_3 \ge 0](H_0%3A%20%5Cbeta_3%20%5Cge%200 "H_0: \beta_3 \ge 0")
 
-Therefore, if $\beta_3$ is significantly less than zero
-(i.e. $P < 0.025$), we would interpret this as evidence that plant-soil
-feedback does become stronger with increasing N.
+![H_A: \beta_3 \lt 0](H_A%3A%20%5Cbeta_3%20%5Clt%200 "H_A: \beta_3 \lt 0")
+
+Therefore, if ![\beta_3](%5Cbeta_3 "\beta_3") is significantly less than
+zero (i.e. ![P \< 0.025](P%20%3C%200.025 "P < 0.025")), we would
+interpret this as evidence that plant-soil feedback does become stronger
+with increasing N.
 
 ### Simulated data
 
@@ -122,12 +117,12 @@ head(dat_e1)
     # A tibble: 6 × 5
           N     M     L N_trans L_log
       <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0  4.62       0  1.53
-    2  1.39     0  4.92       0  1.59
-    3  1.39     0  3.67       0  1.30
-    4  1.39     0  4.91       0  1.59
-    5  1.39     0  4.56       0  1.52
-    6  1.39     0  4.74       0  1.56
+    1  1.39     0  4.02       0  1.39
+    2  1.39     0  4.81       0  1.57
+    3  1.39     0  5.21       0  1.65
+    4  1.39     0  4.24       0  1.45
+    5  1.39     0  4.16       0  1.43
+    6  1.39     0  5.02       0  1.61
 
 Now we are ready to fit the model:
 
@@ -184,27 +179,30 @@ summary(lm_e1)
     lm(formula = L_log ~ M + N_trans + M:N_trans, data = dat_e1)
 
     Residuals:
-         Min       1Q   Median       3Q      Max 
-    -0.21661 -0.08118  0.02234  0.06484  0.25279 
+          Min        1Q    Median        3Q       Max 
+    -0.305161 -0.063319  0.000386  0.070744  0.237251 
 
     Coefficients:
                 Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.51180    0.02935  51.516  < 2e-16 ***
-    M           -0.16401    0.04150  -3.952 0.000172 ***
-    N_trans      0.21225    0.01728  12.280  < 2e-16 ***
-    M:N_trans   -0.09241    0.02444  -3.781 0.000309 ***
+    (Intercept)  1.52973    0.02958  51.709  < 2e-16 ***
+    M           -0.16738    0.04184  -4.001 0.000145 ***
+    N_trans      0.19906    0.01742  11.424  < 2e-16 ***
+    M:N_trans   -0.09175    0.02464  -3.723 0.000375 ***
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.1072 on 76 degrees of freedom
-    Multiple R-squared:  0.8205,    Adjusted R-squared:  0.8135 
-    F-statistic: 115.8 on 3 and 76 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.108 on 76 degrees of freedom
+    Multiple R-squared:  0.8067,    Adjusted R-squared:  0.7991 
+    F-statistic: 105.7 on 3 and 76 DF,  p-value: < 2.2e-16
 
-In this output, the $\beta_3$ parameter is the “M:N_trans” parameter.
-This output indicates that $\beta_3$ is significantly less than zero
-($t_1 = -4.03; P = 0.00013$). Therefore, we would reject our null
-hypothesis ($H_0: \beta_3 \ge 0$) and infer support for our alternative
-hypothesis ($H_0: \beta_3 < 0$).
+In this output, the ![\beta_3](%5Cbeta_3 "\beta_3") parameter is the
+“M:N_trans” parameter. This output indicates that
+![\beta_3](%5Cbeta_3 "\beta_3") is significantly less than zero
+(![t_1 = -4.03; P = 0.00013](t_1%20%3D%20-4.03%3B%20P%20%3D%200.00013 "t_1 = -4.03; P = 0.00013")).
+Therefore, we would reject our null hypothesis
+(![H_0: \beta_3 \ge 0](H_0%3A%20%5Cbeta_3%20%5Cge%200 "H_0: \beta_3 \ge 0"))
+and infer support for our alternative hypothesis
+(![H_0: \beta_3 \< 0](H_0%3A%20%5Cbeta_3%20%3C%200 "H_0: \beta_3 < 0")).
 
 ### Visualise the results
 
@@ -212,14 +210,12 @@ To visualise the results, we will plot the model against the raw data.
 In addition, we will calculate plant-soil feedback using the metric used
 by Goossens et al. (2023, npj):
 
-$$
-PSF_j = \frac{\overline{L}_{microbes} - \overline{L}_{no \ microbes}}{\overline{L}_{no \ microbes}}
-$$
+![PSF_j = \frac{\overline{L}\_{microbes} - \overline{L}\_{no \\microbes}}{\overline{L}\_{no \\microbes}}](PSF_j%20%3D%20%5Cfrac%7B%5Coverline%7BL%7D_%7Bmicrobes%7D%20-%20%5Coverline%7BL%7D_%7Bno%20%5C%20microbes%7D%7D%7B%5Coverline%7BL%7D_%7Bno%20%5C%20microbes%7D%7D "PSF_j = \frac{\overline{L}_{microbes} - \overline{L}_{no \ microbes}}{\overline{L}_{no \ microbes}}")
 
-In this equation, the $\overline{L}$ is the average across replicates of
-plant biomass for a given nitrogen level. Therefore, to obtain a
-measurement of the error around this estimate for each level of
-nitrogen, we used bootstrapping.
+In this equation, the ![\overline{L}](%5Coverline%7BL%7D "\overline{L}")
+is the average across replicates of plant biomass for a given nitrogen
+level. Therefore, to obtain a measurement of the error around this
+estimate for each level of nitrogen, we used bootstrapping.
 
 ``` r
 # function for bootstrapping the sample and estimating psf
@@ -337,28 +333,26 @@ increasing nitrogen for invasive species. Based on this experimental
 design, we will use the following linear model to analyse this
 experiment:
 
-$$
-log(I_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-$$ $$
-\epsilon_{i} \sim Normal(0, \sigma_{residual})
-$$ Based on this model, we can set-up the statistical hypotheses as
+![log(I\_{i}) = \alpha + \beta_1\text{N}\_{i} + \beta_2\text{M}\_{i} + \beta_3\text{N}\_{i}\text{M}\_{i} + \epsilon\_{i}](log%28I_%7Bi%7D%29%20%3D%20%5Calpha%20%2B%20%5Cbeta_1%5Ctext%7BN%7D_%7Bi%7D%20%2B%20%5Cbeta_2%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cbeta_3%5Ctext%7BN%7D_%7Bi%7D%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cepsilon_%7Bi%7D "log(I_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}")
+
+![\epsilon\_{i} \sim Normal(0, \sigma\_{residual})](%5Cepsilon_%7Bi%7D%20%5Csim%20Normal%280%2C%20%5Csigma_%7Bresidual%7D%29 "\epsilon_{i} \sim Normal(0, \sigma_{residual})")
+
+Based on this model, we can set-up the statistical hypotheses as
 follows. The null hypothesis is that plant-soil feedback does not change
 or becomes weaker:
 
-$$
-H_0: \beta_3 \ge 0
-$$
+![H_0: \beta_3 \ge 0](H_0%3A%20%5Cbeta_3%20%5Cge%200 "H_0: \beta_3 \ge 0")
 
 The alternative hypothesis is that plant-soil feedback becomes stronger.
 
-$$
-H_A: \beta_3 \lt 0
-$$
+![H_A: \beta_3 \lt 0](H_A%3A%20%5Cbeta_3%20%5Clt%200 "H_A: \beta_3 \lt 0")
 
-Therefore, if $\beta_3$ is significantly less than zero
-(i.e. $P < 0.025$), we would interpret this as evidence that plant-soil
-feedback does become stronger with increasing N. However, if $\beta_3$
-is not significantly less than zero (i.e. $P \ge 0.025$), then we cannot
+Therefore, if ![\beta_3](%5Cbeta_3 "\beta_3") is significantly less than
+zero (i.e. ![P \< 0.025](P%20%3C%200.025 "P < 0.025")), we would
+interpret this as evidence that plant-soil feedback does become stronger
+with increasing N. However, if ![\beta_3](%5Cbeta_3 "\beta_3") is not
+significantly less than zero
+(i.e. ![P \ge 0.025](P%20%5Cge%200.025 "P \ge 0.025")), then we cannot
 reject the null hypothesis and we infer that nitrogen does not modify
 the strength of plant-soil feedback in invasive species.
 
@@ -418,12 +412,12 @@ head(dat_e2)
     # A tibble: 6 × 5
           N     M     I N_trans I_log
       <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0  5.95       0  1.78
-    2  1.39     0  4.27       0  1.45
-    3  1.39     0  4.19       0  1.43
-    4  1.39     0  4.64       0  1.54
-    5  1.39     0  4.53       0  1.51
-    6  1.39     0  5.47       0  1.70
+    1  1.39     0  4.97       0  1.60
+    2  1.39     0  3.91       0  1.36
+    3  1.39     0  4.60       0  1.53
+    4  1.39     0  6.26       0  1.83
+    5  1.39     0  4.39       0  1.48
+    6  1.39     0  4.26       0  1.45
 
 Next, we fit the model.
 
@@ -476,26 +470,29 @@ summary(lm_e2)
 
     Residuals:
          Min       1Q   Median       3Q      Max 
-    -0.27198 -0.07256 -0.01714  0.08144  0.29805 
+    -0.20024 -0.07048 -0.01057  0.06855  0.33308 
 
     Coefficients:
                 Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.51041    0.03190  47.349  < 2e-16 ***
-    M           -0.13501    0.04511  -2.993  0.00373 ** 
-    N_trans      0.17065    0.01879   9.083 9.26e-14 ***
-    M:N_trans    0.02102    0.02657   0.791  0.43129    
+    (Intercept)  1.50048    0.02999  50.028   <2e-16 ***
+    M           -0.07619    0.04242  -1.796   0.0764 .  
+    N_trans      0.18799    0.01767  10.642   <2e-16 ***
+    M:N_trans   -0.01247    0.02498  -0.499   0.6192    
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.1165 on 76 degrees of freedom
-    Multiple R-squared:  0.7277,    Adjusted R-squared:  0.717 
-    F-statistic:  67.7 on 3 and 76 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.1095 on 76 degrees of freedom
+    Multiple R-squared:  0.7488,    Adjusted R-squared:  0.7389 
+    F-statistic: 75.51 on 3 and 76 DF,  p-value: < 2.2e-16
 
-The $\beta_3$ parameter is the “M:N_trans” parameter. This output
-indicates that $\beta_3$ is not significantly less than zero
-($t_1 = 1.1; P = 0.27$). Therefore, we cannot reject the null hypothesis
-($H_0: \beta_3 \ge 0$) and, therefore, that plant-soil feedback does not
-become stronger with nitrogen for invasive species.
+The ![\beta_3](%5Cbeta_3 "\beta_3") parameter is the “M:N_trans”
+parameter. This output indicates that ![\beta_3](%5Cbeta_3 "\beta_3") is
+not significantly less than zero
+(![t_1 = 1.1; P = 0.27](t_1%20%3D%201.1%3B%20P%20%3D%200.27 "t_1 = 1.1; P = 0.27")).
+Therefore, we cannot reject the null hypothesis
+(![H_0: \beta_3 \ge 0](H_0%3A%20%5Cbeta_3%20%5Cge%200 "H_0: \beta_3 \ge 0"))
+and, therefore, that plant-soil feedback does not become stronger with
+nitrogen for invasive species.
 
 ### Visualise the results
 
@@ -575,23 +572,15 @@ plot(dag3)
 
 ![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-19-1.png)
 
-$$
-log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}
-$$
+![log(L\_{i}) = \alpha + \beta_1\text{N}\_{i} + \beta_2\text{M}\_{i} + \beta_3\text{I}\_{i} + \beta_4\text{N}\_{i}\text{M}\_{i} + \beta_5\text{I}\_{i}\text{M}\_{i} + \beta_6\text{I}\_{i}\text{N}\_{i} + \beta_7\text{N}\_{i}\text{M}\_{i}\text{I}\_{i} + \epsilon\_{i}](log%28L_%7Bi%7D%29%20%3D%20%5Calpha%20%2B%20%5Cbeta_1%5Ctext%7BN%7D_%7Bi%7D%20%2B%20%5Cbeta_2%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cbeta_3%5Ctext%7BI%7D_%7Bi%7D%20%2B%20%5Cbeta_4%5Ctext%7BN%7D_%7Bi%7D%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cbeta_5%5Ctext%7BI%7D_%7Bi%7D%5Ctext%7BM%7D_%7Bi%7D%20%2B%20%5Cbeta_6%5Ctext%7BI%7D_%7Bi%7D%5Ctext%7BN%7D_%7Bi%7D%20%2B%20%5Cbeta_7%5Ctext%7BN%7D_%7Bi%7D%5Ctext%7BM%7D_%7Bi%7D%5Ctext%7BI%7D_%7Bi%7D%20%2B%20%5Cepsilon_%7Bi%7D "log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}")
 
-$$
-\epsilon_{i} \sim Normal(0, \sigma_{residual})
-$$
+![\epsilon\_{i} \sim Normal(0, \sigma\_{residual})](%5Cepsilon_%7Bi%7D%20%5Csim%20Normal%280%2C%20%5Csigma_%7Bresidual%7D%29 "\epsilon_{i} \sim Normal(0, \sigma_{residual})")
 
-$$
-H_0: \beta_7 \ge 0
-$$
+![H_0: \beta_7 \ge 0](H_0%3A%20%5Cbeta_7%20%5Cge%200 "H_0: \beta_7 \ge 0")
 
 The alternative hypothesis is that plant-soil feedback becomes stronger.
 
-$$
-H_A: \beta_7 \lt 0
-$$
+![H_A: \beta_7 \lt 0](H_A%3A%20%5Cbeta_7%20%5Clt%200 "H_A: \beta_7 \lt 0")
 
 ### Simulated data
 
@@ -679,12 +668,12 @@ head(dat_e3)
     # A tibble: 6 × 6
           N     M     I     L N_trans L_log
       <dbl> <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0     0  5.47       0  1.70
-    2  1.39     0     0  4.74       0  1.56
-    3  1.39     0     0  5.33       0  1.67
-    4  1.39     0     0  5.14       0  1.64
-    5  1.39     0     0  5.31       0  1.67
-    6  1.39     0     0  5.45       0  1.69
+    1  1.39     0     0  5.29       0  1.67
+    2  1.39     0     0  4.65       0  1.54
+    3  1.39     0     0  5.20       0  1.65
+    4  1.39     0     0  5.23       0  1.65
+    5  1.39     0     0  4.96       0  1.60
+    6  1.39     0     0  5.14       0  1.64
 
 ``` r
 # fit the statistical model
@@ -730,31 +719,33 @@ summary(lm_e3)
 
     Residuals:
           Min        1Q    Median        3Q       Max 
-    -0.117347 -0.028253 -0.001368  0.030753  0.133403 
+    -0.117909 -0.038519  0.002396  0.034266  0.123897 
 
     Coefficients:
                  Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.531698   0.022295  68.700  < 2e-16 ***
-    N            0.090631   0.007581  11.954  < 2e-16 ***
-    M           -0.276688   0.031530  -8.775 3.26e-15 ***
-    I           -0.138612   0.031530  -4.396 2.06e-05 ***
-    N:M         -0.040454   0.010722  -3.773 0.000231 ***
-    M:I          0.053797   0.044591   1.206 0.229511    
-    N:I          0.010245   0.010722   0.956 0.340825    
-    N:M:I       -0.113451   0.015163  -7.482 5.47e-12 ***
+    (Intercept)  1.497750   0.025481  58.779  < 2e-16 ***
+    N            0.100172   0.008665  11.561  < 2e-16 ***
+    M           -0.207229   0.036036  -5.751 4.73e-08 ***
+    I           -0.081218   0.036036  -2.254   0.0256 *  
+    N:M         -0.058774   0.012254  -4.796 3.82e-06 ***
+    M:I         -0.050762   0.050962  -0.996   0.3208    
+    N:I         -0.008102   0.012254  -0.661   0.5095    
+    N:M:I       -0.084952   0.017330  -4.902 2.41e-06 ***
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.047 on 152 degrees of freedom
-    Multiple R-squared:  0.9777,    Adjusted R-squared:  0.9766 
-    F-statistic:   950 on 7 and 152 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.05372 on 152 degrees of freedom
+    Multiple R-squared:  0.971, Adjusted R-squared:  0.9696 
+    F-statistic: 726.6 on 7 and 152 DF,  p-value: < 2.2e-16
 
-The $\beta_7$ parameter is the “N:M:I” parameter. This output indicates
-that $\beta_7$ is significantly less than zero ()
-($t_1 = -6.6; P < 0.001$). Therefore, we accept our alternative
-hypothesis that $\beta_7$ is less than zero which indicates that the
-competitive effect of invasives on natives increases with nitrogen but
-only with microbes.
+The ![\beta_7](%5Cbeta_7 "\beta_7") parameter is the “N:M:I” parameter.
+This output indicates that ![\beta_7](%5Cbeta_7 "\beta_7") is
+significantly less than zero ()
+(![t_1 = -6.6; P \< 0.001](t_1%20%3D%20-6.6%3B%20P%20%3C%200.001 "t_1 = -6.6; P < 0.001")).
+Therefore, we accept our alternative hypothesis that
+![\beta_7](%5Cbeta_7 "\beta_7") is less than zero which indicates that
+the competitive effect of invasives on natives increases with nitrogen
+but only with microbes.
 
 Function to bootstrap the competition estimate.
 
@@ -834,19 +825,19 @@ summary(comp_e3_boot)
 ```
 
      bootstrap_i              N               M         without_I    
-     Length:9910        Min.   :1.386   Min.   :0.0   Min.   :3.602  
-     Class :character   1st Qu.:2.079   1st Qu.:0.0   1st Qu.:4.065  
-     Mode  :character   Median :2.773   Median :0.5   Median :4.646  
-                        Mean   :2.773   Mean   :0.5   Mean   :5.008  
-                        3rd Qu.:3.466   3rd Qu.:1.0   3rd Qu.:5.978  
-                        Max.   :4.159   Max.   :1.0   Max.   :6.995  
+     Length:9930        Min.   :1.386   Min.   :0.0   Min.   :3.576  
+     Class :character   1st Qu.:2.079   1st Qu.:0.0   1st Qu.:4.136  
+     Mode  :character   Median :2.773   Median :0.5   Median :4.697  
+                        Mean   :2.773   Mean   :0.5   Mean   :5.013  
+                        3rd Qu.:3.466   3rd Qu.:1.0   3rd Qu.:5.751  
+                        Max.   :4.159   Max.   :1.0   Max.   :7.217  
          with_I       competition    
-     Min.   :2.375   Min.   :0.5553  
-     1st Qu.:2.769   1st Qu.:0.6804  
-     Median :3.718   Median :0.8075  
-     Mean   :4.077   Mean   :0.7958  
-     3rd Qu.:5.164   3rd Qu.:0.8998  
-     Max.   :6.680   Max.   :1.0371  
+     Min.   :2.349   Min.   :0.5292  
+     1st Qu.:2.775   1st Qu.:0.6680  
+     Median :3.850   Median :0.8171  
+     Mean   :4.057   Mean   :0.7912  
+     3rd Qu.:5.392   3rd Qu.:0.8936  
+     Max.   :6.310   Max.   :1.0536  
 
 ``` r
 # summarise these bootstrapped samples

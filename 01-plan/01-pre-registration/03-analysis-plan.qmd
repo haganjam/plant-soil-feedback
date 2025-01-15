@@ -1,6 +1,9 @@
 ---
 title: "03-analysis-plan"
-format: gfm
+format:
+   gfm:
+     html-math-method: 
+       method: webtex
 editor: source
 ---
 
@@ -34,14 +37,10 @@ plot(dag1)
 We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. Based on this experimental design, we will use the following linear model to analyse this experiment:
 
 $$
-\begin{aligned}
 log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-\end{aligned}
 $$
 $$
-\begin{aligned}
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
-\end{aligned}
 $$
 Based on this model, we can set-up the statistical hypotheses as follows:
 
