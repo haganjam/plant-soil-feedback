@@ -1,24 +1,27 @@
----
-title: "03-analysis-plan"
-format: gfm
-editor: source
----
+# 03-analysis-plan
+
 
 # Anticipated data analysis
 
-In this document, we will formalise the sttistical analysis that we intend to do using the data we collect. We will go through each of the three experiments, specify the null and alternative hypotheses and run the analysis on a simulated dataset. We intend to re-use this code when analysing the experimental data.
+In this document, we will formalise the sttistical analysis that we
+intend to do using the data we collect. We will go through each of the
+three experiments, specify the null and alternative hypotheses and run
+the analysis on a simulated dataset. We intend to re-use this code when
+analysing the experimental data.
 
-```{r}
+``` r
 # load relevant libraries
 library(ggplot2)
 ```
 
-
 ## Experiment 1:
 
-For experiment 1, the Directed Acyclic Graph representing the causal structure in the experiment. Specifically, the biomass of native plants (L) after 8-weeks of growth as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M).
+For experiment 1, the Directed Acyclic Graph representing the causal
+structure in the experiment. Specifically, the biomass of native plants
+(L) after 8-weeks of growth as a function of experimental nitrogen-level
+(N) and the presence or absence of soil microbes (M).
 
-```{r}
+``` r
 dag1 <- dagitty::dagitty(x = 'dag {
 bb="0,0,1,1"
 L [pos="0.28,0.29"]
@@ -31,30 +34,37 @@ N -> L
 plot(dag1)
 ```
 
-We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. Based on this experimental design, we will use the following linear model to analyse this experiment:
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-2-1.png)
+
+We hypothesise that plant-soil feedback becomes stronger (i.e. has a
+stronger negative effect on plant biomass) with increasing nitrogen.
+Based on this experimental design, we will use the following linear
+model to analyse this experiment:
 
 $$
 log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-$$
-$$
+$$ $$
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
-$$
-Based on this model, we can set-up the statistical hypotheses as follows:
+$$ Based on this model, we can set-up the statistical hypotheses as
+follows:
 
 $$
 H_0: \beta_3 \ge 0
-$$
-$$
+$$ $$
 H_A: \beta_3 \lt 0
 $$
 
-Therefore, if $\beta_3$ is significantly less than zero (i.e. $P < 0.025$), we would interpret this as evidence that plant-soil feedback does become stronger with increasing N.
+Therefore, if $\beta_3$ is significantly less than zero
+(i.e. $P < 0.025$), we would interpret this as evidence that plant-soil
+feedback does become stronger with increasing N.
 
 ### Simulated data
 
-To design write the code used to perform the above hypothesis tests, we will simulate data that is consistent with this experiment (i.e. the data that we expect to obtain).
+To design write the code used to perform the above hypothesis tests, we
+will simulate data that is consistent with this experiment (i.e. the
+data that we expect to obtain).
 
-```{r}
+``` r
 # the exact values of the parameters are not that important in this case
 n_rep = 8
 sigma_residual = 0.10
@@ -83,9 +93,16 @@ dat_e1 <- dplyr::tibble("N" = N, "M" = M, "L" = Y)
 
 ### Data analysis
 
-In addition to the standard data cleaning and exploratory data analysis procedures that must occur in any data-driven scientific project, there are two important transformations that need to be done for the analysis. First, we will substract the minimum nitrogen-level (log-scale) so that the lowest nitrogen-level in the model and, therefore, the intercept term represents the expected plant biomass at the lowest-level of nitrogen without microbes. Additionally, we will need to log-transform the plant biomass variable.
+In addition to the standard data cleaning and exploratory data analysis
+procedures that must occur in any data-driven scientific project, there
+are two important transformations that need to be done for the analysis.
+First, we will substract the minimum nitrogen-level (log-scale) so that
+the lowest nitrogen-level in the model and, therefore, the intercept
+term represents the expected plant biomass at the lowest-level of
+nitrogen without microbes. Additionally, we will need to log-transform
+the plant biomass variable.
 
-```{r}
+``` r
 # data transformations
 
 # translate nitrogen by the minimum
@@ -98,16 +115,29 @@ dat_e1$L_log <- log(dat_e1$L)
 head(dat_e1)
 ```
 
+    # A tibble: 6 × 5
+          N     M     L N_trans L_log
+      <dbl> <dbl> <dbl>   <dbl> <dbl>
+    1  1.39     0  4.18       0  1.43
+    2  1.39     0  4.67       0  1.54
+    3  1.39     0  4.47       0  1.50
+    4  1.39     0  4.55       0  1.52
+    5  1.39     0  4.52       0  1.51
+    6  1.39     0  4.38       0  1.48
+
 Now we are ready to fit the model:
 
-```{r}
+``` r
 # fit the statistical model
 lm_e1 <- lm(L_log ~ M + N_trans + M:N_trans, data = dat_e1)
 ```
 
-Prior to interpreting the results, we need to check the model assumptions. We will do this using a graphical analysis of the residuals. Specifically, we will check that the distribution of the model residuals are at least approximately normal:
+Prior to interpreting the results, we need to check the model
+assumptions. We will do this using a graphical analysis of the
+residuals. Specifically, we will check that the distribution of the
+model residuals are at least approximately normal:
 
-```{r}
+``` r
 # check for residual normality
 lm_e1_res <- residuals(lm_e1)
 
@@ -116,9 +146,13 @@ qqnorm(lm_e1_res, main = "Residual Q-Q Plot")
 qqline(lm_e1_res, col = "red")
 ```
 
-Next, we will test the homogeneity of variance assumption by examining a plot of the residuals versus the fitted values. There should be no pattern in the data:
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-6-1.png)
 
-```{r}
+Next, we will test the homogeneity of variance assumption by examining a
+plot of the residuals versus the fitted values. There should be no
+pattern in the data:
+
+``` r
 # plot residuals vs fitted values
 plot(lm_e1$fitted.values, residuals(lm_e1), 
      xlab = "Fitted Values", 
@@ -130,26 +164,60 @@ plot(lm_e1$fitted.values, residuals(lm_e1),
 abline(h = 0, col = "red", lty = 2)
 ```
 
-If these assumptions are met as indicated by the graphs above (although whether the assumptions are met will always be a judgement call), we can then examine the results and evaluate our hypothesis:
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-7-1.png)
 
-```{r}
+If these assumptions are met as indicated by the graphs above (although
+whether the assumptions are met will always be a judgement call), we can
+then examine the results and evaluate our hypothesis:
+
+``` r
 # check the model summary
 summary(lm_e1)
 ```
 
-In this output, the $\beta_3$ parameter is the "M:N_trans" parameter. This output indicates that $\beta_3$ is significantly less than zero ($t_1 = -4.03; P = 0.00013$). Therefore, we would reject our null hypothesis ($H_0: \beta_3 \ge 0$) and infer support for our alternative hypothesis ($H_0: \beta_3 < 0$).
+
+    Call:
+    lm(formula = L_log ~ M + N_trans + M:N_trans, data = dat_e1)
+
+    Residuals:
+          Min        1Q    Median        3Q       Max 
+    -0.177269 -0.066524  0.003349  0.056957  0.268788 
+
+    Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+    (Intercept)  1.51533    0.02404  63.034  < 2e-16 ***
+    M           -0.16333    0.03400  -4.804 7.64e-06 ***
+    N_trans      0.19669    0.01416  13.891  < 2e-16 ***
+    M:N_trans   -0.06654    0.02002  -3.323  0.00137 ** 
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Residual standard error: 0.08778 on 76 degrees of freedom
+    Multiple R-squared:  0.8547,    Adjusted R-squared:  0.8489 
+    F-statistic:   149 on 3 and 76 DF,  p-value: < 2.2e-16
+
+In this output, the $\beta_3$ parameter is the “M:N_trans” parameter.
+This output indicates that $\beta_3$ is significantly less than zero
+($t_1 = -4.03; P = 0.00013$). Therefore, we would reject our null
+hypothesis ($H_0: \beta_3 \ge 0$) and infer support for our alternative
+hypothesis ($H_0: \beta_3 < 0$).
 
 ### Visualise the results
 
-To visualise the results, we will plot the model against the raw data. In addition, we will calculate plant-soil feedback using the metric used by Goossens et al. (2023, npj):
+To visualise the results, we will plot the model against the raw data.
+In addition, we will calculate plant-soil feedback using the metric used
+by Goossens et al. (2023, npj):
 
 $$
 PSF_j = \frac{\overline{L}_{microbes} - \overline{L}_{no \ microbes}}{\overline{L}_{no \ microbes}}
 $$
 
-In this equation, the $\overline{L}$ is the average across replicates of plant biomass for a given nitrogen level. Therefore, to obtain a measurement of the error around this estimate for each level of nitrogen, we used bootstrapping.
+In this equation, the $\overline{L}$ is the average across replicates of
+plant biomass for a given nitrogen level. Therefore, to obtain a
+measurement of the error around this estimate for each level of
+nitrogen, we used bootstrapping.
 
-```{r}
+``` r
 # function for bootstrapping the sample and estimating psf
 bootstrap_psf <- function(data, n, resp = "L") {
   # bootstrap the psf estimates n times
@@ -181,9 +249,10 @@ bootstrap_psf <- function(data, n, resp = "L") {
 }
 ```
 
-Plot the model results along with the bootstrapped plant-soil feedback metrics:
+Plot the model results along with the bootstrapped plant-soil feedback
+metrics:
 
-```{r}
+``` r
 # log-scale
 
 # get model predictions
@@ -233,11 +302,17 @@ p2 <-
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(1.3, 1))
 ```
 
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-10-1.png)
+
 ## Experiment 2:
 
-The analysis for experiment 2 is very similar to that for experiment 1. The causal structure, represented by the Directed Acyclic Graph, models the biomass of invasive plants (I) after 8-weeks of growh as a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M).
+The analysis for experiment 2 is very similar to that for experiment 1.
+The causal structure, represented by the Directed Acyclic Graph, models
+the biomass of invasive plants (I) after 8-weeks of growh as a function
+of experimental nitrogen-level (N) and the presence or absence of soil
+microbes (M).
 
-```{r}
+``` r
 dag2 <- dagitty::dagitty(x = 'dag {
 bb="0,0,1,1"
 I [pos="0.28,0.29"]
@@ -250,15 +325,21 @@ N -> I
 plot(dag2)
 ```
 
-We hypothesise that plant-soil feedback does not change or becomes weaker (i.e. has a weaker negative effect on plant biomass) with increasing nitrogen for invasive species. Based on this experimental design, we will use the following linear model to analyse this experiment:
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-11-1.png)
+
+We hypothesise that plant-soil feedback does not change or becomes
+weaker (i.e. has a weaker negative effect on plant biomass) with
+increasing nitrogen for invasive species. Based on this experimental
+design, we will use the following linear model to analyse this
+experiment:
 
 $$
 log(I_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-$$
-$$
+$$ $$
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
-$$
-Based on this model, we can set-up the statistical hypotheses as follows. The null hypothesis is that plant-soil feedback does not change or becomes weaker:
+$$ Based on this model, we can set-up the statistical hypotheses as
+follows. The null hypothesis is that plant-soil feedback does not change
+or becomes weaker:
 
 $$
 H_0: \beta_3 \ge 0
@@ -270,13 +351,19 @@ $$
 H_A: \beta_3 \lt 0
 $$
 
-Therefore, if $\beta_3$ is significantly less than zero (i.e. $P < 0.025$), we would interpret this as evidence that plant-soil feedback does become stronger with increasing N. However, if $\beta_3$ is not significantly less than zero (i.e. $P \ge 0.025$), then we cannot reject the null hypothesis and we infer that nitrogen does not modify the strength of plant-soil feedback in invasive species.
+Therefore, if $\beta_3$ is significantly less than zero
+(i.e. $P < 0.025$), we would interpret this as evidence that plant-soil
+feedback does become stronger with increasing N. However, if $\beta_3$
+is not significantly less than zero (i.e. $P \ge 0.025$), then we cannot
+reject the null hypothesis and we infer that nitrogen does not modify
+the strength of plant-soil feedback in invasive species.
 
 ### Simulated data
 
-We will simulate data that is consistent with this experiment (i.e. the data that we expect to obtain).
+We will simulate data that is consistent with this experiment (i.e. the
+data that we expect to obtain).
 
-```{r}
+``` r
 # the exact values of the parameters are not that important in this case
 n_rep = 8
 sigma_residual = 0.10
@@ -305,9 +392,13 @@ dat_e2 <- dplyr::tibble("N" = N, "M" = M, "I" = Y)
 
 ### Data analysis
 
-As with experiment 1, we will substract the minimum nitrogen-level (log-scale) so that the lowest nitrogen-level in the model and, therefore, the intercept term represents the expected plant biomass at the lowest-level of nitrogen without microbes. Additionally, we will need to log-transform the plant biomass variable.
+As with experiment 1, we will substract the minimum nitrogen-level
+(log-scale) so that the lowest nitrogen-level in the model and,
+therefore, the intercept term represents the expected plant biomass at
+the lowest-level of nitrogen without microbes. Additionally, we will
+need to log-transform the plant biomass variable.
 
-```{r}
+``` r
 # data transformations
 
 # translate nitrogen by the minimum
@@ -320,16 +411,27 @@ dat_e2$I_log <- log(dat_e2$I)
 head(dat_e2)
 ```
 
+    # A tibble: 6 × 5
+          N     M     I N_trans I_log
+      <dbl> <dbl> <dbl>   <dbl> <dbl>
+    1  1.39     0  4.35       0  1.47
+    2  1.39     0  4.36       0  1.47
+    3  1.39     0  4.44       0  1.49
+    4  1.39     0  4.42       0  1.49
+    5  1.39     0  4.56       0  1.52
+    6  1.39     0  5.02       0  1.61
+
 Next, we fit the model.
 
-```{r}
+``` r
 # fit the statistical model
 lm_e2 <- lm(I_log ~ M + N_trans + M:N_trans, data = dat_e2)
 ```
 
-Check model assumptions using a graphical analysis of the residuals: Residual normality.
+Check model assumptions using a graphical analysis of the residuals:
+Residual normality.
 
-```{r}
+``` r
 # check for residual normality
 lm_e2_res <- residuals(lm_e2)
 
@@ -338,9 +440,11 @@ qqnorm(lm_e2_res, main = "Residual Q-Q Plot")
 qqline(lm_e2_res, col = "red")
 ```
 
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-15-1.png)
+
 Homogeneity of variance assumption:
 
-```{r}
+``` r
 # plot residuals vs fitted values
 plot(lm_e2$fitted.values, residuals(lm_e2), 
      xlab = "Fitted Values", 
@@ -352,20 +456,50 @@ plot(lm_e2$fitted.values, residuals(lm_e2),
 abline(h = 0, col = "red", lty = 2)
 ```
 
-Once the assumptions have been checked and deemed to have been passed, we can check the model results:
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-16-1.png)
 
-```{r}
+Once the assumptions have been checked and deemed to have been passed,
+we can check the model results:
+
+``` r
 # check the model summary
 summary(lm_e2)
 ```
 
-The $\beta_3$ parameter is the "M:N_trans" parameter. This output indicates that $\beta_3$ is not significantly less than zero ($t_1 = 1.1; P = 0.27$). Therefore, we cannot reject the null hypothesis ($H_0: \beta_3 \ge 0$) and, therefore, that plant-soil feedback does not become stronger with nitrogen for invasive species.
+
+    Call:
+    lm(formula = I_log ~ M + N_trans + M:N_trans, data = dat_e2)
+
+    Residuals:
+         Min       1Q   Median       3Q      Max 
+    -0.20613 -0.07234  0.00537  0.05617  0.25301 
+
+    Coefficients:
+                Estimate Std. Error t value Pr(>|t|)    
+    (Intercept)  1.48083    0.02805  52.789   <2e-16 ***
+    M           -0.06429    0.03967  -1.621   0.1093    
+    N_trans      0.21677    0.01652  13.120   <2e-16 ***
+    M:N_trans   -0.04280    0.02337  -1.832   0.0709 .  
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Residual standard error: 0.1024 on 76 degrees of freedom
+    Multiple R-squared:  0.8042,    Adjusted R-squared:  0.7965 
+    F-statistic:   104 on 3 and 76 DF,  p-value: < 2.2e-16
+
+The $\beta_3$ parameter is the “M:N_trans” parameter. This output
+indicates that $\beta_3$ is not significantly less than zero
+($t_1 = 1.1; P = 0.27$). Therefore, we cannot reject the null hypothesis
+($H_0: \beta_3 \ge 0$) and, therefore, that plant-soil feedback does not
+become stronger with nitrogen for invasive species.
 
 ### Visualise the results
 
-We will visualise these results in the same way that we visualised the results for experiment 1 but this time we will, of course, focus on invasive species biomass.
+We will visualise these results in the same way that we visualised the
+results for experiment 1 but this time we will, of course, focus on
+invasive species biomass.
 
-```{r}
+``` r
 # log-scale
 
 # get model predictions
@@ -415,10 +549,11 @@ p2 <-
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(1.3, 1))
 ```
 
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-18-1.png)
 
 ## Experiment 3:
 
-```{r}
+``` r
 dag3 <- dagitty::dagitty(x = 'dag {
 bb="0,0,1,1"
 I [exposure,pos="0.284,0.180"]
@@ -434,6 +569,7 @@ N -> L
 plot(dag3)
 ```
 
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-19-1.png)
 
 $$
 log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}
@@ -455,9 +591,10 @@ $$
 
 ### Simulated data
 
-We will simulate data that is consistent with this experiment (i.e. the data that we expect to obtain).
+We will simulate data that is consistent with this experiment (i.e. the
+data that we expect to obtain).
 
-```{r}
+``` r
 # set the number of replicates
 n_rep <- 8
 
@@ -522,7 +659,7 @@ dat_e3 <- dplyr::tibble("N" = N, "M" = M, "I" = I, "L" = L)
 
 We use the same transformations as we used in experiment 1 and 2.
 
-```{r}
+``` r
 # data transformations
 
 # translate nitrogen by the minimum
@@ -535,14 +672,25 @@ dat_e3$L_log <- log(dat_e3$L)
 head(dat_e3)
 ```
 
-```{r}
+    # A tibble: 6 × 6
+          N     M     I     L N_trans L_log
+      <dbl> <dbl> <dbl> <dbl>   <dbl> <dbl>
+    1  1.39     0     0  5.57       0  1.72
+    2  1.39     0     0  5.32       0  1.67
+    3  1.39     0     0  5.43       0  1.69
+    4  1.39     0     0  5.20       0  1.65
+    5  1.39     0     0  5.10       0  1.63
+    6  1.39     0     0  5.20       0  1.65
+
+``` r
 # fit the statistical model
 lm_e3 <- lm(L_log ~ N + M + I + N:M + I:M + I:N + M:I:N, data = dat_e3)
 ```
 
-Check model assumptions using a graphical analysis of the residuals: Residual normality.
+Check model assumptions using a graphical analysis of the residuals:
+Residual normality.
 
-```{r}
+``` r
 # check for residual normality
 lm_e3_res <- residuals(lm_e3)
 
@@ -551,7 +699,9 @@ qqnorm(lm_e3_res, main = "Residual Q-Q Plot")
 qqline(lm_e3_res, col = "red")
 ```
 
-```{r}
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-23-1.png)
+
+``` r
 # plot residuals vs fitted values
 plot(lm_e3$fitted.values, residuals(lm_e3), 
      xlab = "Fitted Values", 
@@ -563,16 +713,48 @@ plot(lm_e3$fitted.values, residuals(lm_e3),
 abline(h = 0, col = "red", lty = 2)
 ```
 
-```{r}
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-24-1.png)
+
+``` r
 # check the model summary
 summary(lm_e3)
 ```
 
-The $\beta_7$ parameter is the "N:M:I" parameter. This output indicates that $\beta_7$ is significantly less than zero () ($t_1 = -6.6; P < 0.001$). Therefore, we accept our alternative hypothesis that $\beta_7$ is less than zero which indicates that the competitive effect of invasives on natives increases with nitrogen but only with microbes.
+
+    Call:
+    lm(formula = L_log ~ N + M + I + N:M + I:M + I:N + M:I:N, data = dat_e3)
+
+    Residuals:
+          Min        1Q    Median        3Q       Max 
+    -0.152876 -0.032009  0.001697  0.028479  0.129220 
+
+    Coefficients:
+                 Estimate Std. Error t value Pr(>|t|)    
+    (Intercept)  1.501000   0.023400  64.145  < 2e-16 ***
+    N            0.101675   0.007957  12.778  < 2e-16 ***
+    M           -0.258219   0.033093  -7.803 9.05e-13 ***
+    I           -0.072088   0.033093  -2.178   0.0309 *  
+    N:M         -0.049908   0.011253  -4.435 1.76e-05 ***
+    M:I         -0.003968   0.046800  -0.085   0.9326    
+    N:I         -0.010446   0.011253  -0.928   0.3548    
+    N:M:I       -0.094630   0.015914  -5.946 1.81e-08 ***
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Residual standard error: 0.04933 on 152 degrees of freedom
+    Multiple R-squared:  0.976, Adjusted R-squared:  0.9749 
+    F-statistic:   884 on 7 and 152 DF,  p-value: < 2.2e-16
+
+The $\beta_7$ parameter is the “N:M:I” parameter. This output indicates
+that $\beta_7$ is significantly less than zero ()
+($t_1 = -6.6; P < 0.001$). Therefore, we accept our alternative
+hypothesis that $\beta_7$ is less than zero which indicates that the
+competitive effect of invasives on natives increases with nitrogen but
+only with microbes.
 
 Function to bootstrap the competition estimate.
 
-```{r}
+``` r
 # function for bootstrapping the sample and estimating competition between natives and invasives
 bootstrap_comp <- function(data, n) {
   # bootstrap the psf estimates n times
@@ -614,7 +796,7 @@ bootstrap_comp <- function(data, n) {
 
 Plot the model results along with the bootstrapped competition metrics.
 
-```{r}
+``` r
 # log-scale
 
 # get model predictions
@@ -645,7 +827,24 @@ comp_e3_boot <- bootstrap_comp(data = dat_e3, n = 1000)
 
 # check the bootstrapped data
 summary(comp_e3_boot)
+```
 
+     bootstrap_i              N               M         without_I    
+     Length:9960        Min.   :1.386   Min.   :0.0   Min.   :3.549  
+     Class :character   1st Qu.:2.079   1st Qu.:0.0   1st Qu.:4.076  
+     Mode  :character   Median :2.773   Median :0.5   Median :4.731  
+                        Mean   :2.773   Mean   :0.5   Mean   :4.998  
+                        3rd Qu.:3.466   3rd Qu.:1.0   3rd Qu.:5.849  
+                        Max.   :4.159   Max.   :1.0   Max.   :7.297  
+         with_I       competition    
+     Min.   :2.367   Min.   :0.5272  
+     1st Qu.:2.801   1st Qu.:0.6928  
+     Median :3.874   Median :0.8266  
+     Mean   :4.090   Mean   :0.8002  
+     3rd Qu.:5.304   3rd Qu.:0.9056  
+     Max.   :6.874   Max.   :1.0323  
+
+``` r
 # summarise these bootstrapped samples
 comp_e3_boot_sum <-
   comp_e3_boot |>
@@ -668,6 +867,4 @@ p2 <-
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(2, 1))
 ```
 
-
-
-
+![](03-analysis-plan_files/figure-commonmark/unnamed-chunk-27-1.png)
