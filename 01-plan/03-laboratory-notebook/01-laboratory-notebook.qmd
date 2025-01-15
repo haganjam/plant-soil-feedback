@@ -1,0 +1,29 @@
+---
+title: "01-laboratory-notebook"
+format: html
+editor: source
+---
+
+## Pre-experiment notes
+
+### Variation in biomass of seedlings
+
+The response variable that we will measure in all cases is the dry biomass after 8-weeks of growth. Of course, there will be some influence from the initial size of the seedlings which will vary. Therefore, if there are left-over seedlings, we should dry them and weigh them so that we have some idea of how much they vary.
+
+We could also see how different the size of the seedlings are at the end of the experiment depending on the size that they start the experiment at.
+
+### Randomisation
+
+There needs to be a good way to randomise the different treatments. We should set-up a grid with some random numbers and then assign the plants to these locations randomly. When moved, they should be randomly moved as well.
+
+### Blinding
+
+There are all sorts of subtle effects that can occur during measurement. Our main measurement is the dry biomass at the end of the experiment. Even experienced experimeters can bias the results of their analysis. For example, we know that plants should grow more with more nitrogen and this may affect the way that we measure things.
+
+To prevent this, a good strategy is blinding. We assign a random code to each plant before measurement and then the results are recorded relative to this code.
+
+
+
+
+
+

@@ -98,7 +98,9 @@ Now we are ready to fit the model:
 lm_e1 <- lm(L_log ~ M + N_trans + M:N_trans, data = dat_e1)
 ```
 
-Prior to interpreting the results, we need to check the model assumptions. We will do this using a graphical analysis of the residuals. Specifically, we will check that the distribution of the model residuals are at least approximately normal:
+Prior to interpreting the results, we need to check the model assumptions. With linear regression, there are 
+
+Specifically, we will check that the distribution of the model residuals are at least approximately normal:
 
 ```{r}
 # check for residual normality
