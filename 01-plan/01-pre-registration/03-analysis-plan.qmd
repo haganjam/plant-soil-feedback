@@ -1,6 +1,7 @@
 ---
 title: "03-analysis-plan"
-format: gfm
+format: html
+editor: source
 ---
 
 # Anticipated data analysis
