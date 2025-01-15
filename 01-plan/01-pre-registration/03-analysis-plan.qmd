@@ -1,10 +1,6 @@
 ---
 title: "03-analysis-plan"
-format:
-   gfm:
-     html-math-method: 
-       method: webtex
-editor: source
+format: gfm
 ---
 
 # Anticipated data analysis
@@ -36,22 +32,14 @@ plot(dag1)
 
 We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. Based on this experimental design, we will use the following linear model to analyse this experiment:
 
-$$
-log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}
-$$
-$$
-\epsilon_{i} \sim Normal(0, \sigma_{residual})
-$$
+$$log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}$$
+$$\epsilon_{i} \sim Normal(0, \sigma_{residual})$$
 Based on this model, we can set-up the statistical hypotheses as follows:
 
-$$
-H_0: \beta_3 \ge 0
-$$
-$$
-H_A: \beta_3 \lt 0
-$$
+$$H_0: \beta_3 \ge 0$$
+$$H_A: \beta_3 \lt 0$$
 
-Therefore, if $\beta_3$ is significantly less than zero (i.e. $P < 0.025$), we would interpret this as evidence that plant-soil feedback does become stronger with increasing N.
+Therefore, if $\beta_3$ is significantly less than zero (i.e. $P<0.025$), we would interpret this as evidence that plant-soil feedback does become stronger with increasing N.
 
 ### Simulated data
 
