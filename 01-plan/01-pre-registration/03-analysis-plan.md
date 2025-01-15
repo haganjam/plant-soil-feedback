@@ -42,14 +42,15 @@ Based on this experimental design, we will use the following linear
 model to analyse this experiment:
 
 $$log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}$$
+
 $$\epsilon_{i} \sim Normal(0, \sigma_{residual})$$ Based on this model,
 we can set-up the statistical hypotheses as follows:
 
 $$H_0: \beta_3 \ge 0$$ $$H_A: \beta_3 \lt 0$$
 
-Therefore, if $\beta_3$ is significantly less than zero
-(i.e. $P<0.025$), we would interpret this as evidence that plant-soil
-feedback does become stronger with increasing N.
+Therefore, if $\beta_3$ is significantly less than zero, $P<0.025$, we
+would interpret this as evidence that plant-soil feedback does become
+stronger with increasing N.
 
 ### Simulated data
 
@@ -111,12 +112,12 @@ head(dat_e1)
     # A tibble: 6 × 5
           N     M     L N_trans L_log
       <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0  4.15       0  1.42
-    2  1.39     0  4.08       0  1.41
-    3  1.39     0  4.01       0  1.39
-    4  1.39     0  5.34       0  1.67
-    5  1.39     0  4.46       0  1.49
-    6  1.39     0  3.82       0  1.34
+    1  1.39     0  4.32       0  1.46
+    2  1.39     0  4.82       0  1.57
+    3  1.39     0  4.35       0  1.47
+    4  1.39     0  4.44       0  1.49
+    5  1.39     0  4.05       0  1.40
+    6  1.39     0  3.88       0  1.36
 
 Now we are ready to fit the model:
 
@@ -174,20 +175,20 @@ summary(lm_e1)
 
     Residuals:
           Min        1Q    Median        3Q       Max 
-    -0.211249 -0.059002  0.001865  0.052514  0.216039 
+    -0.223835 -0.073071  0.002305  0.088372  0.219450 
 
     Coefficients:
                 Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.50551    0.02688  56.006  < 2e-16 ***
-    M           -0.11260    0.03802  -2.962  0.00408 ** 
-    N_trans      0.19380    0.01583  12.241  < 2e-16 ***
-    M:N_trans   -0.09571    0.02239  -4.275 5.49e-05 ***
+    (Intercept)  1.53068    0.03027  50.575  < 2e-16 ***
+    M           -0.12040    0.04280  -2.813  0.00624 ** 
+    N_trans      0.17989    0.01783  10.091 1.12e-15 ***
+    M:N_trans   -0.10664    0.02521  -4.230 6.45e-05 ***
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.09816 on 76 degrees of freedom
-    Multiple R-squared:  0.8047,    Adjusted R-squared:  0.797 
-    F-statistic: 104.4 on 3 and 76 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.1105 on 76 degrees of freedom
+    Multiple R-squared:  0.7568,    Adjusted R-squared:  0.7472 
+    F-statistic: 78.85 on 3 and 76 DF,  p-value: < 2.2e-16
 
 In this output, the $\beta_3$ parameter is the “M:N_trans” parameter.
 This output indicates that $\beta_3$ is significantly less than zero
@@ -407,12 +408,12 @@ head(dat_e2)
     # A tibble: 6 × 5
           N     M     I N_trans I_log
       <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0  3.60       0  1.28
-    2  1.39     0  4.72       0  1.55
-    3  1.39     0  4.37       0  1.47
-    4  1.39     0  3.77       0  1.33
-    5  1.39     0  4.39       0  1.48
-    6  1.39     0  3.66       0  1.30
+    1  1.39     0  4.44       0  1.49
+    2  1.39     0  4.78       0  1.56
+    3  1.39     0  4.49       0  1.50
+    4  1.39     0  4.66       0  1.54
+    5  1.39     0  4.93       0  1.59
+    6  1.39     0  4.50       0  1.50
 
 Next, we fit the model.
 
@@ -465,20 +466,20 @@ summary(lm_e2)
 
     Residuals:
           Min        1Q    Median        3Q       Max 
-    -0.202203 -0.065219 -0.005558  0.064437  0.256962 
+    -0.220579 -0.051454  0.004022  0.068374  0.221239 
 
     Coefficients:
                 Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.46337    0.02680  54.609   <2e-16 ***
-    M           -0.03778    0.03790  -0.997   0.3219    
-    N_trans      0.21949    0.01578  13.907   <2e-16 ***
-    M:N_trans   -0.04677    0.02232  -2.095   0.0395 *  
+    (Intercept)  1.50977    0.02588  58.345  < 2e-16 ***
+    M           -0.12856    0.03659  -3.513 0.000749 ***
+    N_trans      0.21090    0.01524  13.838  < 2e-16 ***
+    M:N_trans   -0.01038    0.02155  -0.481 0.631628    
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.09785 on 76 degrees of freedom
-    Multiple R-squared:  0.8152,    Adjusted R-squared:  0.8079 
-    F-statistic: 111.7 on 3 and 76 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.09449 on 76 degrees of freedom
+    Multiple R-squared:  0.8437,    Adjusted R-squared:  0.8376 
+    F-statistic: 136.8 on 3 and 76 DF,  p-value: < 2.2e-16
 
 The $\beta_3$ parameter is the “M:N_trans” parameter. This output
 indicates that $\beta_3$ is not significantly less than zero
@@ -668,12 +669,12 @@ head(dat_e3)
     # A tibble: 6 × 6
           N     M     I     L N_trans L_log
       <dbl> <dbl> <dbl> <dbl>   <dbl> <dbl>
-    1  1.39     0     0  5.23       0  1.65
-    2  1.39     0     0  5.22       0  1.65
-    3  1.39     0     0  5.21       0  1.65
-    4  1.39     0     0  5.12       0  1.63
-    5  1.39     0     0  5.31       0  1.67
-    6  1.39     0     0  5.24       0  1.66
+    1  1.39     0     0  5.20       0  1.65
+    2  1.39     0     0  5.06       0  1.62
+    3  1.39     0     0  4.76       0  1.56
+    4  1.39     0     0  5.54       0  1.71
+    5  1.39     0     0  4.92       0  1.59
+    6  1.39     0     0  4.99       0  1.61
 
 ``` r
 # fit the statistical model
@@ -719,24 +720,24 @@ summary(lm_e3)
 
     Residuals:
           Min        1Q    Median        3Q       Max 
-    -0.142785 -0.027800 -0.004756  0.036094  0.103785 
+    -0.142941 -0.032021 -0.004588  0.036934  0.118880 
 
     Coefficients:
-                Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  1.46451    0.02523  58.043  < 2e-16 ***
-    N            0.11217    0.00858  13.074  < 2e-16 ***
-    M           -0.23122    0.03568  -6.480 1.21e-09 ***
-    I           -0.12731    0.03568  -3.568 0.000482 ***
-    N:M         -0.05839    0.01213  -4.812 3.57e-06 ***
-    M:I          0.04351    0.05046   0.862 0.389963    
-    N:I          0.01154    0.01213   0.951 0.343033    
-    N:M:I       -0.11528    0.01716  -6.718 3.47e-10 ***
+                 Estimate Std. Error t value Pr(>|t|)    
+    (Intercept)  1.496584   0.023371  64.035  < 2e-16 ***
+    N            0.101586   0.007947  12.782  < 2e-16 ***
+    M           -0.220845   0.033052  -6.682 4.20e-10 ***
+    I           -0.033902   0.033052  -1.026   0.3066    
+    N:M         -0.058084   0.011239  -5.168 7.34e-07 ***
+    M:I         -0.082849   0.046743  -1.772   0.0783 .  
+    N:I         -0.018961   0.011239  -1.687   0.0937 .  
+    N:M:I       -0.082176   0.015895  -5.170 7.27e-07 ***
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 0.05319 on 152 degrees of freedom
-    Multiple R-squared:  0.973, Adjusted R-squared:  0.9718 
-    F-statistic: 782.8 on 7 and 152 DF,  p-value: < 2.2e-16
+    Residual standard error: 0.04927 on 152 degrees of freedom
+    Multiple R-squared:  0.977, Adjusted R-squared:  0.976 
+    F-statistic: 924.4 on 7 and 152 DF,  p-value: < 2.2e-16
 
 The $\beta_7$ parameter is the “N:M:I” parameter. This output indicates
 that $\beta_7$ is significantly less than zero ()
@@ -823,19 +824,19 @@ summary(comp_e3_boot)
 ```
 
      bootstrap_i              N               M         without_I    
-     Length:9990        Min.   :1.386   Min.   :0.0   Min.   :3.526  
-     Class :character   1st Qu.:2.079   1st Qu.:0.0   1st Qu.:4.066  
-     Mode  :character   Median :2.773   Median :0.5   Median :4.602  
-                        Mean   :2.773   Mean   :0.5   Mean   :4.971  
-                        3rd Qu.:3.466   3rd Qu.:1.0   3rd Qu.:5.723  
-                        Max.   :4.159   Max.   :1.0   Max.   :7.418  
+     Length:9900        Min.   :1.386   Min.   :0.0   Min.   :3.604  
+     Class :character   1st Qu.:2.079   1st Qu.:0.0   1st Qu.:3.967  
+     Mode  :character   Median :2.773   Median :0.5   Median :4.761  
+                        Mean   :2.773   Mean   :0.5   Mean   :5.004  
+                        3rd Qu.:3.466   3rd Qu.:1.0   3rd Qu.:5.921  
+                        Max.   :4.159   Max.   :1.0   Max.   :7.208  
          with_I       competition    
-     Min.   :2.306   Min.   :0.5460  
-     1st Qu.:2.740   1st Qu.:0.6745  
-     Median :3.746   Median :0.8473  
-     Mean   :4.086   Mean   :0.8022  
-     3rd Qu.:5.389   3rd Qu.:0.9066  
-     Max.   :6.929   Max.   :1.0619  
+     Min.   :2.382   Min.   :0.5351  
+     1st Qu.:2.678   1st Qu.:0.6755  
+     Median :3.902   Median :0.8241  
+     Mean   :4.088   Mean   :0.7967  
+     3rd Qu.:5.443   3rd Qu.:0.9149  
+     Max.   :6.362   Max.   :1.0256  
 
 ``` r
 # summarise these bootstrapped samples
