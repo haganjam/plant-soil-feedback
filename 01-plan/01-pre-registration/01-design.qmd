@@ -1,6 +1,8 @@
 ---
-title: "Pre-registration"
-format: gfm
+title: "Design"
+format: 
+  html:
+    embed-resources: true
 editor: source
 ---
 

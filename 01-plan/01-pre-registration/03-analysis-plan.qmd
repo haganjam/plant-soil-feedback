@@ -1,6 +1,8 @@
 ---
-title: "03-analysis-plan"
-format: html
+title: "Analysis plan"
+format: 
+  html:
+    embed-resources: true
 editor: source
 ---
 
