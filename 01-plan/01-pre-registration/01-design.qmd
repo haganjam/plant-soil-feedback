@@ -6,18 +6,18 @@ format:
 editor: source
 ---
 
-## 1. Project Plan:
+## Project Plan:
 
-## Objective
-
-
-## Background
+### Objective
 
 
-## Experimental design planning
+### Background
 
 
-## Analysis Plan
+### Experimental design planning
+
+
+### Analysis Plan
 
 
 
