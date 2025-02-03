@@ -34,9 +34,12 @@ plot(dag1)
 This DAG can be modelled this as a simple linear model. However, we are interested in the *proportional* changes in native plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale:
 
 $$
-L_{i} = e^{\alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}} \\
+L_{i} = e^{\alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}}
+$$
+$$
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
 $$
+
 We simulate this model in the following way. First, we simulate the data based on the experimental design. The experimental design crosses four levels of nitrogen (4, 8, 16 and 32 mg) (N) with the presence or absence of conditioned microbes (M). For this initial simulation, we set the number of replicates (n_rep) to 100 per treatment combination as we are interested in making sure the model works (this will be reduced for the power analysis of course).
 
 ```{r}
@@ -673,7 +676,10 @@ plot(dag3)
 
 
 $$
-L_{i} = e^{\alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}} \\
+L_{i} = e^{\alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{I}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{I}_{i}\text{M}_{i} + \beta_6\text{I}_{i}\text{N}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}}
+$$
+
+$$
 \epsilon_{i} \sim Normal(0, \sigma_{residual})
 $$
 

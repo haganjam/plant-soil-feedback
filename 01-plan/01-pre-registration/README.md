@@ -18,4 +18,4 @@ See the html preview [here](https://htmlpreview.github.io/?https://github.com/ha
 
 Here, we document and simulate the analyses that we plan to conduct in order to test our hypotheses. If the experiment goes to plan, we will use these exact methods to analyse our experimental data.
 
-See the html preview [here](https://github.com/haganjam/plant-soil-feedback/blob/main/01-plan/01-pre-registration/03-analysis-plan.html)
+See the html preview [here](https://htmlpreview.github.io/?https://github.com/haganjam/plant-soil-feedback/blob/main/01-plan/01-pre-registration/03-analysis-plan.html)
