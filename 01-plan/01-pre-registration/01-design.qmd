@@ -3,6 +3,8 @@ title: "Design"
 format: 
   html:
     embed-resources: true
+html-math-method: 
+  method: mathjax
 editor: source
 ---
 
