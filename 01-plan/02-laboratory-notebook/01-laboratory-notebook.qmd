@@ -18,7 +18,7 @@ There needs to be a good way to randomise the different treatments. We should se
 
 ### Blinding
 
-There are all sorts of subtle effects that can occur during measurement. Our main measurement is the dry biomass at the end of the experiment. Even experienced experimeters can bias the results of their analysis. For example, we know that plants should grow more with more nitrogen and this may affect the way that we measure things.
+There are all sorts of subtle effects that can occur during measurement. Our main measurement is the dry biomass at the end of the experiment. Even experienced experimenters can bias the results of their analysis. For example, we know that plants should grow more with more nitrogen and this may affect the way that we measure things.
 
 To prevent this, a good strategy is blinding. We assign a random code to each plant before measurement and then the results are recorded relative to this code.
 
