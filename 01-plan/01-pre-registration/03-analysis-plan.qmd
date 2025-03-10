@@ -4,13 +4,15 @@ format:
   html:
     embed-resources: true
 html-math-method: 
-  method: mathjax
+  method: katex
 editor: source
+execute:
+  warning: false
 ---
 
 # Anticipated data analysis
 
-In this document, we will formalise the sttistical analysis that we intend to do using the data we collect. We will go through each of the three experiments, specify the null and alternative hypotheses and run the analysis on a simulated dataset. We intend to re-use this code when analysing the experimental data.
+In this document, we will formalise the statistical analysis that we intend to do using the data we collect. We will go through each of the three experiments, specify the null and alternative hypotheses and run the analysis on a simulated dataset. We intend to re-use this code when analysing the experimental data.
 
 ```{r}
 # load relevant libraries
@@ -35,7 +37,9 @@ N -> L
 plot(dag1)
 ```
 
-We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. Based on this experimental design, we will use the following linear model to analyse this experiment:
+We hypothesise that plant-soil feedback becomes stronger (i.e. has a stronger negative effect on plant biomass) with increasing nitrogen. 
+
+Based on this experimental design, we will use the following linear model to analyse this experiment:
 
 $$
 log(L_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{N}_{i}\text{M}_{i} + \epsilon_{i}

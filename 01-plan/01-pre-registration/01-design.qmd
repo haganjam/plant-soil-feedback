@@ -4,8 +4,10 @@ format:
   html:
     embed-resources: true
 html-math-method: 
-  method: mathjax
+  method: katex
 editor: source
+execute:
+  warning: false
 ---
 
 ## Project Plan:
