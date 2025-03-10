@@ -12,14 +12,30 @@ editor: source
 
 ### Objective
 
-
 ### Background
 
+### Experimental design
 
-### Experimental design planning
+To assess whether plant soil feedbacks (PSFs) for native and invasive species are affected by differences in soil N availability, and if these alterations in PSF consequently impact competition between both, a two-phase greenhouse experiment was conducted. During the first phase, the conditioning phase, plant communities were grown and soil microbiota such as plant mutualists and species-specific pathogens could accumulate. During the second phase, the response phase, plants were grown in soils from the first phase, conditioned by the plant community of interest or by a different plant community (as control group), allowing for the calculation of PSFs (see 03-analysis-plan.html for details).
+
+During the conditioning phase, plant communities were grown for eight weeks. These communities consisted each time of four native species: *Centaurea jacea* (Asteraceae), *Plantago lanceolata* (Plantaginaceae), *Agrostis capillaris* (Poaceae) and *Ranunculus repens* (Ranunculaceae) and one invasive placed in the middle -repeated for *Solidago gigantea* (Asteraceae), *Sporobolus indicus* (Poaceae), *Erigeron canadensis* (Asteraceae) and *Phytolacca americana* (Phytolaccaceae). In addition, control plant communities were grown consisting of two individuals of *Achillea millefolium* (Asteraceae), two of *Rumex acetosa* (Polygonaceae) and one individual of *Holcus lanatus* (Poaceae). All native plants typically occur in moist mesotrophic European grasslands and invasives are known to invade these ecosystems. Native plant seeds were all obtained from Cruydt-Hoeck (The Netherlands), and seeds of invasive species were collected in the wild during the autumn of 2024.
+
+Prior to the experiment, seeds were germinated on universal potting soil (Viano, Belgium, pH = 6) for a period of 14 to 28 days, depending on their germination rates. In total, 315 plant communities were established (180 plant communities of interest -45 per invasive species- and 135 control plant communities), each composed of 5 native plants (for a total of 1575 plants), by transplanting seedlings into 0.75-liter pots (12 cm diameter, Göttinger, Germany). The pots were filled with a mixture consisting of 95% sand and 5% soil inoculum (by volume), then arranged in a randomized design within a greenhouse. Plants were cultivated there for eight weeks (February and March 2025). The sand component was composed of dried white quartz sand (Sibelco, Type M31), with nitrogen and phosphorus concentrations below detection limits. The soil inoculum was collected from a moist, mesotrophic meadow (Doode Bemde, Belgium, 50.815538°N, 4.644776°E) by sampling the upper 10 cm of soil at 100 randomly selected locations and thoroughly mixing the samples.
+
+Five different N treatments were applied, supplying 4, 8, 16, 32 or 64 mg N per plant over eight weeks (Ext. Data Table 1). All other nutrients were kept constant for a total of 2.0 mg P, 181.1 mg K, 28.6 mg Ca, 6.9 mg Mg, 4.9 mg Fe, 0.034 mg Cu, 0.40 mg B, 0.24 mg Mn, 0.12 mg Zn, and 0.070 mg Mo per plant in the same time period (Hoagland & Arnon, 1950; Minden et al., 2021). Nutrients were supplied weekly in gradually increasing volumes to match the plants’ growing nutrient demands: 5 ml per pot during the first two weeks, 10 ml per pot over the following four weeks, and 20 ml per pot in the final two weeks (Olde Venterink & Güsewell, 2010). Additionally, pots were watered three times per week with deionized water. After eight weeks, the plants were harvested by cutting them at the root-stem junction. The aboveground biomass was then dried at 70°C for 72 hours and subsequently weighed. Belowground biomass was not measured due to extensive root interweaving. The conditioned soil was retained for use in the response phase.
+
+During the response phase, three different community types were grown in a full-factorial design (Ext. Data Fig. 1) for another eight weeks. Firstly, invasive plant species were grown separately (repeated for all invasive species) in soil conditioned by the native community of interest (+ the same invasive species in the middle) and in soil conditioned by the control community, repeated for each N treatment (3 repetitions for each combination). By comparing invasive growth in the different soils along the N gradient, PSFs for each invasive species could be calculated when grown at different nutrient availabilities. Similarly, in order to calculate PSFs for native communities of interest at different N availabilities, these were grown separately (i.e. without invasive) in soil conditioned by that same community (+ invasive) and in soil conditioned by the control community, again along the N gradient. Lastly, to examine whether competitive strength of natives and invasives is altered by PSFs at different N levels, the same plant communities with the invasive plant were grown in both soils conditioned by the plant community of interest (+ same invasive species) and in soil conditioned by the control community, along the N gradient. In total, 120 invasive plant species were grown separately (4 invasives x 5 N treatments x 2 soil treatments x 3 repetitions), 75 native plant communities without invasive were grown (5 N treatments x 4 invasive species x 3 repetitions when soil was conditioned by the community of interest with invasive + 5 N treatments x 3 repetitions when soil was conditioned by control community) and 120 complete plant communities (natives + invasive) were grown (4 invasives x 5 N treatments x 2 soil treatments x 3 repetitions) for a total of 315 pots and 1020 plants. Growth conditions, watering, and nutrient supply were kept consistent with the conditioning phase. After eight weeks, the aboveground biomass was harvested, dried at 70°C for 72 hours, and weighed.
+
+**References**
+
+Hoagland, D. R., & Arnon, D. I. (1950). The water-culture method for growing plants without soil. ColI Agric UC Berkeley, USA. Cal Agric Exp Stn Circ, 347, 1–32.
+
+Minden, V., Schaller, J., & Olde Venterink, H. (2021). Plants increase silicon content as a response to nitrogen or phosphorus limitation: A case study with Holcus lanatus. Plant and Soil, 462(1–2), 95–108. https://doi.org/10.1007/s11104-020-04667-1
+
+Olde Venterink, H., & Güsewell, S. (2010). Competitive interactions between two meadow grasses under nitrogen and phosphorus limitation: Competition under N and P limitation. Functional Ecology, 24(4), 877–886. https://doi.org/10.1111/j.1365-2435.2010.01692.x
 
 
-### Analysis Plan
+
 
 
 
