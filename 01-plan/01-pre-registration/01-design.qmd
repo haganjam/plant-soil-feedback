@@ -14,6 +14,12 @@ execute:
 
 ### Objective
 
+Our objective is to examine how the strength of plant-soil feedback changes with increasing nitrogen, whether this differs between native and invasive plant species and whether these potential differences can affect the strength of competition between natives and invasives.
+
+The first experiment (**Experiment 1**) will be used to estimate how the strength of plant-soil feedback changes with nitrogen in natives compared to invasives. This will then inform our expectations, tested in **Experiment 2** about how the interaction between plant-soil feedback and nitrogen will affect the strength of competition between natives and invasives. For example, if the strength of plant-soil feedback increases more with nitrogen in natives compared to invasives (i.e. **Experiment 1**), then we would expect the competitive effect of invasives on natives to increase with nitrogen in the presence of soil microbes (i.e. which we test in **Experiment 2**). The opposite is also true.
+
+
+
 ### Background
 
 ### Experimental design

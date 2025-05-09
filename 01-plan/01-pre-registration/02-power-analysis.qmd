@@ -88,6 +88,7 @@ print(paste0("beta2: ", round(exp(beta2) - 1, 2)*100, " % change in plant biomas
 beta3 <- 0
 print(paste0("beta3: ", round(exp(beta3) - 1, 2)*100, " % change in plant biomass for a simultaneous increase in N by one unit and with microbes beyond their individual effects"))
 ```
+
 Using this generative model, we can simulate the observed native plant biomass (L) on the natural-scale as follows:
 
 ```{r}
