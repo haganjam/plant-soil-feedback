@@ -1,0 +1,76 @@
+---
+title: "Simulate test data"
+format: 
+  html:
+    embed-resources: true
+    math: mathjax
+editor: source
+execute:
+  warning: false
+---
+
+Use the helper functions to generate data for testing (i.e. for experiments 1 and 2). We start by loading the help functions:
+
+```{r}
+# load the relevant libraries
+library(dplyr)
+library(ggplot2)
+
+# load the helper function
+source("helper-experiment-1.R")
+source("helper-experiment-2.R")
+```
+
+### Experiment 1 test data
+
+```{r}
+# simulate data from the generative model
+ex1_data <- sim_exp1(n_rep = 5,
+                     N_vals = log(c(4, 8, 16, 32, 64)),
+                     M_vals = c(0, 1),
+                     P_vals = c(0, 1),
+                     alpha = 1.5,
+                     beta1 = 0.2,
+                     beta2 = -0.75,
+                     beta3 = 0,
+                     beta4 = 0.05,
+                     beta5 = 0,
+                     beta6 = 0,
+                     beta7 = 0.2,
+                     sigma_residual = 0.10)
+
+# add log(4) to the N so that data prep can also be prepared
+ex1_data$N <- ex1_data$N + min(ex1_data$N) 
+
+# export the test data
+saveRDS(object = ex1_data,
+        file = here::here("data-raw/ex1-test-data.rds"))
+```
+
+### Experiment 2 test data
+
+```{r}
+# simulate data from the generative model
+sim_df_ex2 <- sim_exp2(n_rep = 5,
+                       N_vals = log(c(4, 8, 16, 32, 64)),
+                       M_vals = c(0, 1),
+                       I_vals = c(0, 1),
+                       alpha = 1.2,
+                       gamma1 = 0.2,
+                       gamma2 = -0.75,
+                       gamma3 = -0.4,
+                       gamma4 = 0.05,
+                       gamma5 = 0.02,
+                       gamma6 = 0.4,
+                       gamma7 = -0.3,
+                       sigma_residual = 0.1) 
+
+# add log(4) to the N so that data prep can also be prepared
+ex2_data$N <- ex2_data$N + min(ex2_data$N) 
+
+# export the test data
+saveRDS(object = ex2_data,
+        file = here::here("data-raw/ex2-test-data.rds"))
+```
+
+

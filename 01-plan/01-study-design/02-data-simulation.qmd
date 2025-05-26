@@ -1,0 +1,863 @@
+---
+title: "Analysis plan"
+format: 
+  html:
+    embed-resources: true
+    math: mathjax
+editor: source
+execute:
+  warning: false
+---
+
+In this document, we generate a data simulation that describes the planned study. The study consists of an initial experiment to understand how native and invasive plants respond to microbes and nitrogen (@sec-experiment-1). The second part of the study is a @sec-simulation-experiment based on the results of @sec-experiment-1 where we make predictions about how native and invasive plants will compete under different levels of nitrogen with and without microbes in hypothetical runs of an experiment. Finally, we test these predictions explicitly in @sec-experiment-2.
+
+```{r}
+# load relevant libraries
+library(ggplot2)
+library(dplyr)
+```
+
+## Experiment 1 {#sec-experiment-1}
+
+### Causal structure
+
+For experiment 1, the Directed Acyclic Graph representing the causal structure in the experiment. Specifically, the biomass of plants (B) after 8-weeks of growth is a function of experimental nitrogen-level (N) and the presence or absence of soil microbes (M) and the whether the plant is a native or invasive (P).
+
+```{r}
+dag1 <- dagitty::dagitty(x = 'dag {
+bb="0,0,1,1"
+B [pos="0.35,0.45"]
+M [pos="0.2,0.45"]
+N [pos="0.5,0.45"]
+P [pos="0.35,0.425"]
+M -> B
+N -> B
+P -> B
+}
+'
+)
+plot(dag1)
+```
+
+### Generative model description
+
+This DAG can be modelled this as a simple linear model. However, we are interested in the *proportional* changes in plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale where:
+
+  $B$ - Biomass (mg)
+
+  $N$ - log(N mg)
+  $M$ - 0 - microbes absent, 1 - microbes present
+  $P$ - 0 - native, 1 - invasive
+
+$$
+B_{i} = e^{\alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{P}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{N}_{i}\text{P}_{i} + \beta_6\text{M}_{i}\text{P}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{P}_{i} + \epsilon_{i}}
+$$ {#eq-exp1-gen}
+
+$$
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$ {#eq-exp1-gen-error}
+
+We simulate this model in the following way. First, we simulate the data based on the experimental design. The experimental design crosses five levels of nitrogen (4, 8, 16, 32 and 64 mg) ($N$), the presence or absence of conditioned microbes ($M$) and whether a plant is native or invasive ($P$). For this initial simulation, we set the number of replicates (`n_rep`) to 100 per treatment combination as we are interested in making sure the model works.
+
+```{r}
+# set the number of replicates
+n_rep <- 100
+
+# nitrogen-levels
+N_lev <- log(c(4, 8, 16, 32, 64))
+
+# soil microbe presence-absence
+M_lev <- c(0, 1)
+
+# native or invasive plant
+P_lev <- c(0, 1)
+
+# create all combinations of factors
+factor_combinations <- 
+  tidyr::expand_grid(
+    M = M_lev,
+    P = P_lev,
+    N = N_lev
+    )
+
+# add replicates for each combination
+experiment_design <- factor_combinations |>
+  dplyr::slice(rep(1:dplyr::n(), each = n_rep)) |>
+  dplyr::mutate(rep = rep(1:n_rep, times = nrow(factor_combinations))) |>
+  dplyr::tibble()
+
+# simulate the nitrogen values
+N <- experiment_design$N
+
+# transform so that the intercept represents the lowest level of nitrogen
+N <- (N - min(N))
+
+# simulate the microbe presence-absence
+M <- experiment_design$M
+
+# simulate the native vs. invasive
+P <- experiment_design$P
+```
+
+Now that we have simulated the raw data values for $N$, $M$ and $P$, we need to set-up some model parameters. The $\beta$ parameters in the model represents the proportional change in plant biomass on the natural scale. These parameters therefore need to be carefully chosen so that they make sense on the log-scale. For the purposes of this initial simulation, this is not that important but we provide the transformation so that the interpretation the natural scale is also clear:
+
+```{r}
+# residual standard deviation
+sigma_residual <- 0.10
+
+# alpha - intercept: expected log biomass when N, M, and P are all 0
+alpha <- 1.5
+print(paste0("alpha: ", round(exp(alpha), 2), 
+             " dry biomass (mg) when N=0, no microbes, and native plant"))
+
+# beta1 - effect of nitrogen (N) when M = 0 and P = 0
+beta1 <- 0.2
+print(paste0("beta1: ", round((exp(beta1) - 1) * 100, 2), 
+             " % change in biomass per unit N when no microbes and native plant"))
+
+# beta2 - effect of microbes (M) when N = 0 and P = 0
+beta2 <- -0.75
+print(paste0("beta2: ", round((exp(beta2) - 1) * 100, 2), 
+             " % change in biomass with microbes when N=0 and native plant"))
+
+# beta3 - effect of plant origin (P) when N = 0 and M = 0
+beta3 <- 0
+print(paste0("beta3: ", round((exp(beta3) - 1) * 100, 2), 
+             " % change in biomass for invasive plant when N=0 and no microbes"))
+
+# beta4 - interaction: N × M
+beta4 <- 0.05
+print(paste0("beta4: ", round((exp(beta4) - 1) * 100, 2), 
+             " % additional change for N with microbes (vs. no microbes)"))
+
+# beta5 - interaction: N × P
+beta5 <- 0.00
+print(paste0("beta5: ", round((exp(beta5) - 1) * 100, 2), 
+             " % additional change for N with invasive plants (vs. natives)"))
+
+# beta6 - interaction: M × P
+beta6 <- 0.00
+print(paste0("beta6: ", round((exp(beta6) - 1) * 100, 2), 
+             " % interaction effect of microbes and plant origin at N = 0"))
+
+# beta7 - three-way interaction: N × M × P
+beta7 <- 0.4
+print(paste0("beta7: ", round((exp(beta7) - 1) * 100, 2), 
+             " % additional effect when N increases, with microbes and invasive plant, beyond all lower-order effects"))
+```
+
+Most important for this experiment is the $\beta_7$ parameter. Specifically, if $\beta_7 \neq 0$, it means the way N influences the strength of plant-soil feedback differs between natives and invasives:
+
++ If $\beta_7 > 0$, the plant-soil feedback becomes more positive (or less negative) with increasing N in invasives compared to natives.  
++ If $\beta_7 < 0$, the plant-soil feedback becomes more negative with increasing N in invasives compared to natives.
+
+### Data simulation
+
+Now that we have gone through this generative model, we can now use these parameters to simulate from it:
+
+```{r}
+# simulate the observed plant biomass on the natural scale
+B <- exp(
+  alpha +
+    (beta1 * N) +                     # effect of nitrogen
+    (beta2 * M) +                     # effect of microbes
+    (beta3 * P) +                     # effect of plant origin
+    (beta4 * N * M) +                 # N × M interaction
+    (beta5 * N * P) +                 # N × P interaction
+    (beta6 * M * P) +                 # M × P interaction
+    (beta7 * N * M * P) +             # N × M × P three-way interaction
+    rnorm(n = length(N), mean = 0, sd = sigma_residual)  # residual error
+)
+```
+
+Using these simulated data, we fit a linear model on the log-scale and therefore we transform the model as follows:
+
+$$
+log(B_{i}) = \alpha + \beta_1\text{N}_{i} + \beta_2\text{M}_{i} + \beta_3\text{P}_{i} + \beta_4\text{N}_{i}\text{M}_{i} + \beta_5\text{N}_{i}\text{P}_{i} + \beta_6\text{M}_{i}\text{P}_{i} + \beta_7\text{N}_{i}\text{M}_{i}\text{P}_{i} + \epsilon_{i}
+$$ {#eq-exp1-lm}
+
+$$
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$ {#eq-exp1-lm-error}
+
+We can now use the `lm()` function from the `stats` package to fit this model to the data and see if we can recover the parameters that we simulated .
+
+```{r}
+# fit the linear model
+lm1 <- lm(log(B) ~ N + M + P + N:M + N:P + M:P + N:M:P)
+
+# extract the summary
+lm1_sum <- summary(lm1)
+
+# print the summary
+lm1_sum$sigma
+lm1_sum
+```
+
+We can then create a table that will allow us to efficiently compare the estimated model parameters to the parameters that we set. From this table, it is clear that the model is able to very accurately reproduce the parameters that were simulated from.
+
+```{r}
+# make a table to compare simulated versus estimated parameters
+dplyr::tibble(simulated = c(alpha, beta1, beta2, beta3, beta4, beta5, beta6, beta7),
+              estimated = coef(lm1))
+```
+
+In this initial simulation, we set the $\beta_7$ as greater than 0 which means that the plant-soil feedback should become more positive (or less negative) with increasing N in invasives compared to natives. Let's see if we can see this in the data.
+
+From this graph, it is easy to see that, for invasives (i.e. right panel), the plant-soil feedback is actually positive at higher levels of N whilst it stays negative across the N gradient for natives (i.e. left panel).
+
+```{r}
+# plot the biomass values for different N values with and without microbes for native/invasives
+ggplot(data = dplyr::tibble(N = N, M = as.character(M), P = as.character(P), B = B),
+       mapping = aes(x = N, y = B, colour = M)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~P) +
+  theme_bw()
+```
+
+For further analysis and experimentation, we have wrapped this generative model into a function (**sim_exp1()**):
+
+```{r}
+# load the experiment 1 generative model function
+source("helper-experiment-1.R")
+```
+
+This function and the plotting code below allow one to explore how the parameters change the outcomes:
+
+```{r}
+# simulate data from the generative model
+test_data <- sim_exp1(n_rep = 100,
+                      N_vals = log(c(4, 8, 16, 32, 64)),
+                      M_vals = c(0, 1),
+                      P_vals = c(0, 1),
+                      alpha = 1.5,
+                      beta1 = 0.2,
+                      beta2 = -0.75,
+                      beta3 = 0,
+                      beta4 = 0.05,
+                      beta5 = 0,
+                      beta6 = 0,
+                      beta7 = -0.4,
+                      sigma_residual = 0.10)
+
+# fit a linear model to these data
+lm_test <- lm(log(B) ~ N + M + P + N:M + N:P + M:P + N:M:P, data = test_data)
+
+# plot the biomass values for different N values with and without microbes for native/invasives
+ggplot(data = test_data |> dplyr::mutate(M = as.character(M), P = as.character(P)),
+       mapping = aes(x = N, y = B, colour = M)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~P) +
+  theme_bw()
+```
+
+### Expected outcomes
+
+There are two expected outcomes for this experiment. The first is a test of the following null hypothesis where, if $\beta_7 \neq 0$, it indicates that there is a difference in how natives and invasives respond to nitrogen and microbes.
+
+$$
+H_0: \beta_7 = 0
+$$
+
+$$
+H_A:  \beta_7 \neq 0
+$$
+
+For example, if $ \beta_7 > 0$, the plant-soil feedback becomes *proportionally* more negative with increasing N in invasives compared to natives (i.e. the proportional decrease in biomass in invasives with microbes at higher N is greater than the proportional decrease in biomass in natives with microbes at higher N).
+
+The second outcome is the **fitted model** (@equ:lm1 and @equ:lm-error) which we will use to generate predictions about how the differential response of natives and invasives to nitrogen and microbes will affect the strength of competition between natives and invasives.
+
+## Simulation experiment {#sec-simulation-experiment}
+
+The model that we will fit to the data generated in @sec-experiment-1 is described in @eq-exp1-lm and @eq-exp1-lm-error. This model describes the biomass of native and invasive plants without interspecific competition under different nitrogen levels in the presence and absence of microbes. If natives and invasives respond differently to nitrogen and microbes, this may affect competition between natives and invasives. For example, if the effect of microbes on invasives becomes less negative with nitrogen in invasives but not natives, we would expect that the net competitive effect of invasives on natives to be stronger at higher levels of nitrogen in the presence of microbes.
+
+Here, we will use a **simulation experiment**  to predict the net competitive effect of invasives on natives without and without microbes at different levels of nitrogen. To do this, we consider two species: a **native** species (\( N \)) and an **invasive** species (\( I \)), whose population dynamics follow the classical Lotka–Volterra competition model:
+
+$$
+\begin{aligned}
+\frac{dB_N}{dt} &= r_N B_N \left(1 - \frac{B_N + \alpha_{IN} B_I}{K_N} \right) \\
+\frac{dB_I}{dt} &= r_I B_I \left(1 - \frac{B_I + \alpha_{NI} B_N}{K_I} \right)
+\end{aligned}
+$$ {#eq-lv-1}
+
+Where:
+
+- \( B_N \), \( B_I \): Biomass of the native and invasive species, respectively
+- \( r_N \), \( r_I \): Intrinsic growth rates
+- \( K_N \), \( K_I \): Carrying capacities in monoculture
+- \( \alpha_{IN} \): Effect of invasive on native (per capita)
+- \( \alpha_{NI} \): Effect of native on invasive (per capita)
+
+At equilibrium, \( \frac{dB_N}{dt} = 0 \) and \( \frac{dB_I}{dt} = 0 \), so the Lotka-Volterra model simplifies to:
+
+$$
+\begin{aligned}
+1 - \frac{B_N + \alpha_{IN} B_I}{K_N} &= 0 \\
+1 - \frac{B_I + \alpha_{NI} B_N}{K_I} &= 0
+\end{aligned}
+$$ {#eq-lv-2}
+
+If we then multiply both sides of each equation by their respective carrying capacities, we get the following:
+
+$$
+\begin{aligned}
+B_N^\ast + \alpha_{IN} B_I^\ast &= K_N \\
+\alpha_{NI} B_N^\ast + B_I^\ast &= K_I
+\end{aligned}
+$$ {#eq-lv-3}
+
+This is now a **linear system of two equations** in two unknowns: \( B_N^\ast \) and \( B_I^\ast \). We can now solve these linear equations to obtain expressions for the equilibrium biomass of natives  \( (B_N^\ast) \) and invasives \( (B_I^\ast) \) in competition based on the carrying capacities of natives and invasives and their competition coefficients.
+
+$$
+\begin{aligned}
+B_N^\ast &= \frac{K_N - \alpha_{IN} K_I}{1 - \alpha_{IN} \alpha_{NI}} \\
+B_I^\ast &= \frac{K_I - \alpha_{NI} K_N}{1 - \alpha_{IN} \alpha_{NI}}
+\end{aligned}
+$$ {#eq-lv-4}
+
+Given that @sec-experiment-1 grew natives and invasives in the absence of competition, we can use the model that was fit to the data from experiment 1 (i.e. @eq-exp1-lm and @eq-exp1-lm-error) to approximate the carrying capacities of natives \( (K_N) \) and invasives \( (K_I) \) in each of the different treatment conditions (i.e. level of nitrogen and the presence or absence of microbes). For example, the ln-transformed biomass of a native species in the presence of microbes at \(log(4)\) mg N based on this model is:
+
+$$
+\begin{aligned}
+\log(B_i) &= \alpha + \beta_1 \log(4) + \beta_2(1) + \beta_3(0) + \beta_4 \log(4)(1) + \beta_5 \log(4)(0) + \beta_6(1)(0) + \beta_7 \log(4)(1)(0) + \epsilon_i \\
+&= \alpha + (\beta_1 + \beta_4) \log(4) + \beta_2 + \epsilon_i
+\end{aligned}
+$$ {#eq-lv-5}
+
+Therefore, on the natural scale, this is simply:
+
+$$
+B_i = e^{(\alpha + (\beta_1 + \beta_4) \log(4) + \beta_2 + \epsilon_i)}
+$$ {#eq-lv-6}
+
+As a result, we assume that \( (K_N) \) in the presence of microbes at \(log(4)\) mg N is:
+
+$$
+K_N = e^{(\alpha + (\beta_1 + \beta_4) \log(4) + \beta_2 + \epsilon_i)}
+$$ {#eq-lv-7}
+
+Therefore, by using the model fit to the data from @sec-experiment-1 (i.e. @eq-exp1-lm and @eq-exp1-lm-error) to approximate the carrying capacities of natives and invasives in a given experimental unit and by assuming some competition coefficients, we can estimate the equilibrium biomass of native species in the presence of competition from invasives under the different nitrogen and microbe treatments using this equation:
+
+$$
+\begin{aligned}
+B_N^\ast &= \frac{K_N - \alpha_{IN} K_I}{1 - \alpha_{IN} \alpha_{NI}} \\
+B_I^\ast &= \frac{K_I - \alpha_{NI} K_N}{1 - \alpha_{IN} \alpha_{NI}}
+\end{aligned}
+$$ {#eq-lv-8}
+
+### Simulating predictions for experiment 2
+
+Using the framework described above, we can simulate hypothetical runs of @sec-experiment-2 i.e. native biomass with and without invasives, with and without microbes and at different levels of nitrogen. This will allow us to predict the net effect of competition from invasives on natives based on how natives and invasives respond to nitrogen and the presence or absence of microbes. We will then compare these predictions to the results of @sec-experiment-2. 
+
+For the competition coefficient assumptions, we will assume symmetric competition (i.e. \( \alpha_{IN} = \alpha_{NI}\) with a strength varying between 0.1 and 0.75.
+
+Next, we write a function so simulate competition between natives and invasives based on the two-species Lotka-Volterra model and the model fit to the data from @sec-experiment-1 (i.e. @eq-exp1-lm and @eq-exp1-lm-error).
+
+```{r}
+# load the data to simulate from the Lotka-Volterra model
+source("helper-simulation-experiment.R")
+```
+
+We now test this function using the fitted model and see if the predictions make sense. In this case, we assume competition coefficients of 0.2 and use the fitted model object: `lm1`. In this case, microbes have a positive effect on invasives at high levels of nitrogen. Therefore, we expected the net competitive effect of invasives on natives to be strongest with microbes and at high nitrogen which is what is clear from the graph.
+
+```{r}
+# run the simulation
+sim_results <- simulate_competition(N_vals = log(c(4, 8, 16, 32, 64)), 
+                                    M_vals = c(0, 1), 
+                                    n_rep = 50,
+                                    fitted_model = lm1,
+                                    alpha_IN = 0.2,
+                                    alpha_NI = 0.2)
+
+# plot the results
+ggplot(data = sim_results,
+       mapping = aes(x = N, y = log(B), colour = I)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(x = "log(Nitrogen Level)", y = "Native Biomass (log)") +
+  facet_wrap(~M) +
+  theme_minimal()
+```
+
+In addition, we can also directly calculate the competitive effect of invasives on natives as the biomass of natives alone \( (B_{N, \text{alone}}) \) divided by the biomass of natives with invasives \( (B_{N, \text{invasive}}) \). With this metric, if the effect of invasives on natives increases, the metric increases which makes it easy to interpret as an *increase in the strength of competition*.
+
+$$
+C = \log\left(\frac{ B_{N, \text{alone}} }{ B_{N, \text{invasive}} } \right)
+$$
+
+We calculate this competition metric using the mean value of each treatment combination (i.e. nitrogen, microbes, presence/absence of invasives) and then plot the data and it is clear that the competitive effect of invasives on natives becomes stronger with nitrogen in the presence of microbes.
+
+```{r}
+#| label: fig-lm1-comp-metric
+
+# summarise and pivot to the wide format
+sim_comp_metric <- 
+  sim_results |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(B = mean(B)) |>
+  tidyr::pivot_wider(id_cols = c("N", "M"),
+                     names_from = I,
+                     values_from = B)
+
+# rename the variables
+names(sim_comp_metric) <- c("N", "M", "BN_alone", "BN_invasive")
+
+# calculate the competition metric
+sim_comp_metric <-
+  sim_comp_metric |>
+  dplyr::mutate(C = log(BN_alone/BN_invasive))
+
+# plot the results
+ggplot(data = sim_comp_metric,
+       mapping = aes(x = N, y = C)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(x = "log(Nitrogen Level)", y = "Competition metric") +
+  facet_wrap(~M) +
+  theme_minimal()
+
+```
+
+These simulations were done by assuming only one-level of competition (i.e. 0.2). We will now repeat these simulations assuming different levels of competition and averaging over the results.
+
+```{r}
+#| label: fig-lm1-pred
+
+# set-up a vector of competition values
+alpha_vals <- seq(0.1, 0.5, 0.05)
+
+# loop the simulation over these alpha_vals
+sim_out <- vector("list", length = length(alpha_vals))
+for (i in seq_along(sim_out)) {
+  # run the simulation
+  x <- 
+    simulate_competition(N_vals = log(c(4, 8, 16, 32, 64)), 
+                         M_vals = c(0, 1),
+                         n_rep = 50,
+                         fitted_model = lm1,
+                         alpha_IN = alpha_vals[i],
+                         alpha_NI = alpha_vals[i])
+  
+  # add a competition coefficient value
+  sim_out[[i]] <- 
+    dplyr::bind_cols(dplyr::tibble(alpha_sim = alpha_vals[i]),
+                     x)
+}
+
+# bind into a data.frame
+sim_df <- dplyr::bind_rows(sim_out)
+
+# calculate an interval
+sim_df_sum <-
+  sim_df |>
+  dplyr::mutate(B = log(B)) |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(B_mean = median(B),
+                   B_pi_low = quantile(B, 0.25),
+                   B_pi_high = quantile(B, 0.75))
+
+# plot the results
+ggplot(data = sim_df_sum,
+       mapping = aes(x = N, y = (B_mean), fill = I)) +
+  geom_line(mapping = aes(colour = I)) +
+  geom_ribbon(mapping = aes(ymin = (B_pi_low), ymax = (B_pi_high)),
+              alpha = 0.2) +
+  labs(x = "log(Nitrogen Level)", y = "Native Biomass (log)") +
+  facet_wrap(~M) +
+  theme_minimal()
+```
+
+### Expected outcomes
+
+Based on this simulation experiment, we expect to make predictions for @sec-experiment-2 both qualitatively and quantitatively. For example, if the data we obtain in @sec-experiment-1 is similar to the data we simulated, we should expect a stronger effect of competition on natives by invasives as nitrogen increases when microbes are present (e.g. @fig-lm1-pred, @fig-lm1-comp-metric). This will help us generate a hypothesis for what we should expect to see in @sec-experiment-2. In addition, this simulation experiment also provides quantitative predictions that can be compared to the data from @sec-experiment-2 (e.g. @fig-lm1-pred).
+
+
+## Experiment 2 {#sec-experiment-2}
+
+### Causal structure
+
+We assume the following causal structure where native biomass ($B$) is determined by nitrogen ($N$), presence/absence of microbes ($M$) and the presence/absence of invasives ($I$):
+
+```{r}
+dag2 <- dagitty::dagitty(x = 'dag {
+bb="0,0,1,1"
+I [exposure,pos="0.284,0.180"]
+B [outcome,pos="0.285,0.300"]
+M [pos="0.153,0.180"]
+N [pos="0.418,0.180"]
+I -> B
+M -> B
+N -> B
+}
+'
+)
+plot(dag2)
+```
+
+### Generative model description
+
+Given this causal structure, our generative model of native biomass as a function of nitrogen, presence/absence of microbes and the presence/absence of invasives is given as follows:
+
+$$
+B_{i} = e^{\alpha + \gamma_1\text{N}_{i} + \gamma_2\text{M}_{i} + \gamma_3\text{I}_{i} + \gamma_4\text{N}_{i}\text{M}_{i} + \gamma_5\text{I}_{i}\text{M}_{i} + \gamma_6\text{I}_{i}\text{N}_{i} + \gamma_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}}
+$$ {#eq-exp2-gen}
+
+$$
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$ {#eq-exp2-gen-error}
+
+The parameter that we are most interested in is the $\gamma_7$ parameter which describes the change in the effect of invasives on native biomass with nitrogen and the presence/absence of microbes. Specifically:
+
++ If $\gamma_7 < 0$, the effect of invasives on native biomass increases (i.e. competition gets stronger) with increasing nitrogen in the presence of microbes.
++ If $\gamma_7 > 0$, the effect of invasives on native biomass decreases (i.e. competition gets weaker) with increasing nitrogen in the presence of microbes.
+
+### Data simulation
+
+We will simulate data that is consistent with this experiment (i.e. the data that we expect to obtain). The coefficients were based on fitting the model to the data from the @sec-simulation-experiment to check how consistent it would be in a best-case scenario.
+
+```{r}
+# set the number of replicates
+n_rep <- 10
+
+# nitrogen-levels
+N_lev <- log(c(4, 8, 16, 32, 64))
+
+# soil microbe presence-absence
+M_lev <- c(0, 1)
+
+# invasive presence-absence
+I_lev <- c(0, 1)
+
+# create a grid of parameters
+par_grid <- expand.grid(rep = seq_len(n_rep),
+                        N = N_lev, M = M_lev, I = I_lev)
+
+# extract the variables
+N <- par_grid[["N"]]
+M <- par_grid[["M"]]
+I <- par_grid[["I"]]
+
+# make intercept mean 0 nitrogen
+N <- N - min(N)
+
+# set the model parameters
+
+# residual standard deviation
+sigma_residual <- 0.1
+
+# alpha - mean plant biomass without microbes on the natural scale
+alpha <- 1.5
+
+# gamma1 - expected change in mean plant biomass without microbes on the log-scale
+gamma1 <- 0.2
+
+# gamma2 - expected change in mean plant biomass with and without microbes when N is zero without invasives
+gamma2 <- -0.75
+
+# gamma3 - expected change in mean plant biomass with and without invasives when N is zero without microbes
+gamma3 <- -0.25
+
+# gamma4
+gamma4 <- 0.05
+
+# gamma5
+gamma5 <- 0.5
+
+# gamma6
+gamma6 <- -0.02
+
+# gamma7
+gamma7 <- -1.2
+
+# simulate the expected log plant biomass
+log_mu <- alpha + (gamma1*N) + (gamma2*M) + (gamma3*I) + (gamma4*N*M) + (gamma5*I*N) + (gamma6*I*M) + (gamma7*N*M*I)
+
+# return the simulated data as a data frame
+B <- exp(log_mu + rnorm(n = length(log_mu), 0, sigma_residual))
+
+# wrap into a data.frame for plotting
+sim_df_ex2 <-
+  dplyr::tibble(N = N, M = as.character(M), I = as.character(I), B = B)
+```
+
+Using these simulated data, we fit a linear model on the log-scale and therefore we transform the model as follows:
+
+$$
+\text{log}(B_{i}) = \alpha + \gamma_1\text{N}_{i} + \gamma_2\text{M}_{i} + \gamma_3\text{I}_{i} + \gamma_4\text{N}_{i}\text{M}_{i} + \gamma_5\text{I}_{i}\text{M}_{i} + \gamma_6\text{I}_{i}\text{N}_{i} + \gamma_7\text{N}_{i}\text{M}_{i}\text{I}_{i} + \epsilon_{i}
+$$ {#eq-exp2-lm}
+
+$$
+\epsilon_{i} \sim Normal(0, \sigma_{residual})
+$$ {#eq-exp2-lm-error}
+
+We can now use the `lm()` function from the `stats` package to fit this model to the data and see if we can recover the parameters that we simulated .
+
+```{r}
+# fit the linear model
+lm2 <- lm(log(B) ~ N + M + I + N:M + I:M + I:N + N:M:I)
+
+# extract the summary
+lm2_sum <- summary(lm2)
+
+# print the summary
+lm2_sum$sigma
+lm2_sum
+```
+
+We can then create a table that will allow us to efficiently compare the estimated model parameters to the parameters that we set. From this table, it is clear that the model is able to very accurately reproduce the parameters that were simulated from.
+
+```{r}
+# make a table to compare simulated versus estimated parameters
+dplyr::tibble(simulated = c(alpha, gamma1, gamma2, gamma3, gamma4, gamma5, gamma6, gamma7),
+              estimated = coef(lm2))
+```
+
+As we can see from the visualisation of the simulated data below, we simulated a $gamma_7$ parameter value that was strongly negative and the effect is that native biomass declines with nitrogen but only in the presence of microbes and invasives.
+
+```{r}
+# plot the simulated data over the predictions
+ggplot() +
+  geom_point(data = sim_df_ex2,
+             mapping = aes(x = N, y = log(B), fill = I, colour = I)) +
+  labs(x = "log(Nitrogen Level)", y = "Native Biomass (log)") +
+  facet_wrap(~M) +
+  theme_minimal()
+```
+
+For further analysis and experimentation, we have wrapped this generative model into a function (**sim_exp2()**):
+
+```{r}
+# load the experiment 2 function
+source("helper-experiment-2.R")
+```
+
+### Expected outcomes
+
+The main outcome of this experiment is to test the null hypothesis of $\gamma_7 = 0$ based on the predictions made in the @sec-simulation-experiment. More specifically, if the @sec-simulation-experiment indicates that $\gamma_7 < 0$, then we will run the following hypothesis test (i.e. one-tailed test: $\alpha = 0.05$):
+
+#### Prediction: $\gamma_7 < 0$ {#sec-prediction-1}
+
+$$
+H_0: \gamma_7 = 0
+$$
+
+$$
+H_A:  \gamma_7 < 0
+$$
+
+#### Prediction: $\gamma_7 > 0$ {#sec-prediction-2}
+
+However, if the @sec-simulation-experiment indicates that $\gamma_7 > 0$, then we will run the following hypothesis test (i.e. one-tailed test: $\alpha = 0.05$):
+
+$$
+H_0: \gamma_7 = 0
+$$
+
+$$
+H_A:  \gamma_7 > 0
+$$
+
+#### Prediction: $\gamma_7 \neq 0$ {#sec-prediction-3}
+
+And, finally, if the @sec-simulation-experiment indicates that $\gamma_7 = 0$, then we will run the following hypothesis test (i.e. two-tailed test: $\alpha = 0.05$):
+
+$$
+H_0: \gamma_7 = 0
+$$
+
+$$
+H_A:  \gamma_7 \neq 0
+$$
+
+If the predictions are in accordance with the data from @sec-experiment-2, it indicates that understanding how native and invasive species respond to nitrogen and microbes in the absence of competition along with linear assumptions about competition can correctly predict the net competitive effect of invasives on native species. However, if we cannot predict the net competitive effect of invasives on native species, it suggests that other kinds of interaction are occuring when natives and invasives are grown together that is not captured by how they respond to nitrogen and microbes in the absence of competition.
+
+How exactly we will compare the predictions to the results is detailed in the @sec-overview section below where we go through the full analysis pipeline together.
+
+## Overview {#sec-overview}
+
+Here, we wrap these simulations together so that all three parts can be run and modified together.
+
+```{r}
+# load the helper functions
+source("helper-experiment-1.R")
+source("helper-simulation-experiment.R")
+source("helper-experiment-2.R")
+```
+
+### Experiment 1
+
+After data collection, we will obtain data like this for a given invasive species. We suppose that the data looks like this and the follow this example. 
+
+```{r}
+# simulate data from the generative model
+ex1_data <- sim_exp1(n_rep = 10,
+                     N_vals = log(c(4, 8, 16, 32, 64)),
+                     M_vals = c(0, 1),
+                     P_vals = c(0, 1),
+                     alpha = 1.5,
+                     beta1 = 0.2,
+                     beta2 = -0.75,
+                     beta3 = 0,
+                     beta4 = 0.05,
+                     beta5 = 0,
+                     beta6 = 0,
+                     beta7 = 0.2,
+                     sigma_residual = 0.10)
+
+# fit a linear model to these data
+lm1 <- lm(log(B) ~ N + M + P + N:M + N:P + M:P + N:M:P, data = ex1_data)
+
+# plot the biomass values for different N values with and without microbes for native/invasives
+ggplot(data = ex1_data |> dplyr::mutate(M = as.character(M), P = as.character(P)),
+       mapping = aes(x = N, y = B, colour = M)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~P) +
+  theme_bw()
+```
+
+In this example of data that could be obtained from **experiment 1**, the $beta_7$ coefficient is significantly greater than zero. This indicates that, for invasives, the negative effects of microbes are ameliorated when nitrogen is high but that this is not the case for natives.
+
+```{r}
+# check the summary statistics
+summary(lm1)
+```
+
+### Simulation experiment
+
+Given that $beta_7$ is significantly negative and, therefore, that the negative effect of microbes weakens with nitrogen in invasives and not natives, one could intuitively hypothesise that, therefore, the net competitive effect of invasives on natives would be higher at higher nitrogen-levels in the presence of microbes. However, this will depend on the strength of the effect. To make a more precise prediction about how the net competitive effect of invasives on natives depends on nitrogen and the presence/absence of microbes, we can use a simulation experiment.
+
+To do this, we assume some linear per-capita competition effect (between 0.1 and 0.75) of invasives on natives and then simulate biomass in the absence of competition using the fitted model from **experiment 1**:
+
+```{r}
+# set-up a vector of competition values
+alpha_vals <- seq(0.1, 0.75, 0.05)
+
+# replicates per alpha value
+alpha_vals <- rep(alpha_vals, each = 10)
+
+# loop the simulation over these alpha_vals
+sim_out <- vector("list", length = length(alpha_vals))
+for (i in seq_along(sim_out)) {
+  # run the simulation
+  x <- 
+    simulate_competition(N_vals = log(c(4, 8, 16, 32, 64)), 
+                         M_vals = c(0, 1),
+                         n_rep = 50,
+                         fitted_model = lm1,
+                         alpha_IN = alpha_vals[i],
+                         alpha_NI = alpha_vals[i])
+  
+  # add a competition coefficient value
+  sim_out[[i]] <- 
+    dplyr::bind_cols(dplyr::tibble(alpha_sim_rep = i,
+                                   alpha_sim = alpha_vals[i]),
+                     x)
+}
+```
+
+To these simulated competition experiments that mimic **experiment 2**, we then fit the model planned for **experiment 2** (see @sec-experiment-2). We then extract the relevant parameter estimate that describes the change in the strength of competition which is the $gamma_7$ parameter (i.e. three-way interaction between N, M and I in the model for @sec-experiment-2). 
+
+```{r}
+# fit the relevant linear model to each simulated dataset and extract beta7 parameter
+pred_coef <- 
+  lapply(sim_out, function(x) {
+  # fit the linear model
+  lm_x <- lm(log(B) ~ N + M + I + N:M + I:M + I:N + N:M:I, 
+           data = x |> dplyr::mutate(N = N, M = factor(M), I = factor(I)))
+  # extract the coefficients
+  coef_x <- coef(lm_x)[8]
+  # remove the names
+  names(coef_x) <- NULL
+  # return the coefficient
+  coef_x
+})
+```
+
+We then make the following **decision rule** about the hypothesis for **experiment 2**. If the range of predicted coefficient values is below zero, we hypothesise that the $\gamma_7$ coefficient will be less than zero in **experiment 2** (see @sec-prediction-1). If the range is greater than zero, we hypothesise that the $\gamma_7$ will be greater than zero in **experiment 2** (see @sec-prediction-2). Finally, if the range overlaps with zero, then we hypothesise that $\gamma_7$ will not be different from zero (see @sec-prediction-3).
+
+In this case, the simulation indicates that, based on the performance of natives and invasives in the absence of competition that the $\gamma_7$ coefficient should be less than zero (i.e. the full range of $\gamma_7$ estimates from simulated runs of @sec-experiment-2 is less than zero):
+
+```{r}
+# check the range
+range(unlist(pred_coef))
+```
+
+If we plot the simulation, we can also clearly see the increasing competitive effect of invasives on natives with nitrogen but only in the presence of microbes:
+
+```{r}
+# bind into a data.frame for plotting
+sim_df <- dplyr::bind_rows(sim_out)
+
+# calculate an interval
+sim_df_sum <-
+  sim_df |>
+  dplyr::mutate(B = log(B)) |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(B_mean = median(B),
+                   B_pi_low = quantile(B, 0.25),
+                   B_pi_high = quantile(B, 0.75))
+
+# plot the results
+ggplot(data = sim_df_sum,
+       mapping = aes(x = N, y = (B_mean), fill = I)) +
+  geom_line(mapping = aes(colour = I)) +
+  geom_ribbon(mapping = aes(ymin = (B_pi_low), ymax = (B_pi_high)),
+              alpha = 0.2) +
+  
+  labs(x = "log(Nitrogen Level)", y = "Native Biomass (log)") +
+  facet_wrap(~M) +
+  theme_minimal()
+```
+
+### Experiment 2
+
+We can now simulate data for **experiment 2** and test our hypothesis:
+
+```{r}
+# simulate the data using the function
+sim_df_ex2 <- sim_exp2(n_rep = 10,
+                       N_vals = log(c(4, 8, 16, 32, 64)),
+                       M_vals = c(0, 1),
+                       I_vals = c(0, 1),
+                       alpha = 1.2,
+                       gamma1 = 0.2,
+                       gamma2 = -0.75,
+                       gamma3 = -0.4,
+                       gamma4 = 0.05,
+                       gamma5 = 0.02,
+                       gamma6 = 0.4,
+                       gamma7 = -0.3,
+                       sigma_residual = 0.2) 
+```
+
+We now fit the relevant model to examine our hypothesis that the $\gamma_7$ coefficient is less than zero (@sec-prediction-1). In this case, we find that, indeed, the $\gamma_7$ is significantly less than zero which supports out alternative hypothesis and matches with our prediction.
+
+```{r}
+# fit the model and check the summary
+lm_exp_2 <- lm(lm(log(B) ~ N + M + I + N:M + I:N + I:M + N:M:I, data = sim_df),
+               data = sim_df_ex2 |> dplyr::mutate(N = N, M = factor(M), I = factor(I)))
+
+# check the model summary:
+summary(lm_exp_2)
+```
+
+In addition, we can overlay the simulated **experiment 2** on the model predictions to compare the congruency.
+
+```{r}
+# plot the simulated data over the predictions
+
+# plot the results
+ggplot() +
+  geom_ribbon(data = sim_df_sum,
+              mapping = aes(x = N, ymin = (B_pi_low), ymax = (B_pi_high), fill = I),
+              alpha = 0.2) +
+  geom_point(data = sim_df_ex2 |> dplyr::mutate(I = as.character(I), M = as.character(M)),
+             mapping = aes(x = N, y = log(B), fill = I, colour = I)) +
+  labs(x = "log(Nitrogen Level)", y = "Native Biomass (log)") +
+  facet_wrap(~M) +
+  theme_minimal()
+```
+
