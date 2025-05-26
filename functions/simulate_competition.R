@@ -118,14 +118,14 @@ simulate_competition <- function(N_vals,
         B_I_star <- max(B_I_star, 0.005)
         
         # store the outputs
-        results[[length(results) + 1]] <- tibble(
+        results[[length(results) + 1]] <- dplyr::tibble(
           N = N,
           M = M,
           I = 0,
           replicate = rep,
           B = K_N
         )
-        results[[length(results) + 1]] <- tibble(
+        results[[length(results) + 1]] <- dplyr::tibble(
           N = N,
           M = M,
           I = 1,

@@ -220,7 +220,7 @@ For further analysis and experimentation, we have wrapped this generative model 
 
 ```{r}
 # load the experiment 1 generative model function
-source("helper-experiment-1.R")
+source(here::here("functions/sim_exp1.R"))
 ```
 
 This function and the plotting code below allow one to explore how the parameters change the outcomes:
@@ -267,7 +267,7 @@ $$
 
 For example, if $ \beta_7 > 0$, the plant-soil feedback becomes *proportionally* more negative with increasing N in invasives compared to natives (i.e. the proportional decrease in biomass in invasives with microbes at higher N is greater than the proportional decrease in biomass in natives with microbes at higher N).
 
-The second outcome is the **fitted model** (@equ:lm1 and @equ:lm-error) which we will use to generate predictions about how the differential response of natives and invasives to nitrogen and microbes will affect the strength of competition between natives and invasives.
+The second outcome is the **fitted model** (@equ-ex1-lm1 and @equ-ex1-lm-error) which we will use to generate predictions about how the differential response of natives and invasives to nitrogen and microbes will affect the strength of competition between natives and invasives.
 
 ## Simulation experiment {#sec-simulation-experiment}
 
@@ -357,7 +357,7 @@ Next, we write a function so simulate competition between natives and invasives 
 
 ```{r}
 # load the data to simulate from the Lotka-Volterra model
-source("helper-simulation-experiment.R")
+source(here::here("functions/simulate_competition.R"))
 ```
 
 We now test this function using the fitted model and see if the predictions make sense. In this case, we assume competition coefficients of 0.2 and use the fitted model object: `lm1`. In this case, microbes have a positive effect on invasives at high levels of nitrogen. Therefore, we expected the net competitive effect of invasives on natives to be strongest with microbes and at high nitrogen which is what is clear from the graph.
@@ -630,7 +630,7 @@ For further analysis and experimentation, we have wrapped this generative model 
 
 ```{r}
 # load the experiment 2 function
-source("helper-experiment-2.R")
+source(here::here("functions/sim_exp2.R"))
 ```
 
 ### Expected outcomes
@@ -681,9 +681,9 @@ Here, we wrap these simulations together so that all three parts can be run and 
 
 ```{r}
 # load the helper functions
-source("helper-experiment-1.R")
-source("helper-simulation-experiment.R")
-source("helper-experiment-2.R")
+source(here::here("functions/sim_exp1.R"))
+source(here::here("functions/simulate_competition.R"))
+source(here::here("functions/sim_exp2.R"))
 ```
 
 ### Experiment 1
