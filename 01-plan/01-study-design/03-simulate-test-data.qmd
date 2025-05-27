@@ -17,8 +17,8 @@ library(dplyr)
 library(ggplot2)
 
 # load the helper function
-source("helper-experiment-1.R")
-source("helper-experiment-2.R")
+source(here::here("functions/sim_exp1.R"))
+source(here::here("functions/sim_exp2.R"))
 ```
 
 ### Experiment 1 test data
@@ -40,7 +40,7 @@ ex1_data <- sim_exp1(n_rep = 3,
                      sigma_residual = 0.10)
 
 # add log(4) to the N so that data prep can also be prepared
-ex1_data$N <- ex1_data$N + min(ex1_data$N) 
+ex1_data$N <- ex1_data$N + log(4) 
 
 # export the test data
 saveRDS(object = ex1_data,
@@ -66,7 +66,7 @@ ex2_data <- sim_exp2(n_rep = 3,
                      sigma_residual = 0.1) 
 
 # add log(4) to the N so that data prep can also be prepared
-ex2_data$N <- ex2_data$N + min(ex2_data$N) 
+ex2_data$N <- ex2_data$N + log(4) 
 
 # export the test data
 saveRDS(object = ex2_data,
