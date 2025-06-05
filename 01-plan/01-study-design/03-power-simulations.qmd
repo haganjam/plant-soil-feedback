@@ -235,38 +235,7 @@ When \(M=1\) and \(P=1\), the full “\(N\)-slope” picks up all main and two�
 
 $\sigma_{residual}$ - residual standard deviation
 
-We used previous literature and some *unpublished* experimental data to assign realist parameter values for the power analysis. $\alpha$ represents the mean native plant biomass (L) on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with these native species indicates that 2.5 g is reasonable for the dry-weight of these plants without microbes and at low nitrogen values (e.g. Goossens et al. 2023, *npj biodiversity*). For the effect of nitrogen (N), $\beta_1$, we used estimates from Minden and Olde Venterinck (2019, *Functional Ecology*) where, for these native species, an increase of between 0 and 15% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e. microbes, M) on native species, $\beta_2$, was taken from Schitzer et al. (2011, *Ecology*) who measured a reduction of plant biomass of between 10 and 40% due to the presence of microbes. Pilot data indicated a difference between natives and invasives that is between -10% and 30% (i.e. invasives have slightly less biomass or more biomass). For the interactions, we varied the strength between -10% and 10% which is also based on analysing pilot data. We estimated $\sigma_{residual}$ based on data from a previous, unpublished experiment on the same species. 
-
-Using these estimates, we set-up the parameter ranges to simulate and wrap into a data.frame:
-
-```{r}
-# convert percentage to parameter for the log-scale
-par_target <- function(target) log(1 + target)
-
-alpha <- log(2.5)
-beta1 <- par_target(c(0.05, 0.10, 0.15))
-beta2 <- par_target(seq(0.10, 0.40, 0.10))
-beta3 <- par_target(seq(-0.10, 0.30, 0.10))
-beta4 <- par_target(seq(-0.10, 0.10, 0.10))
-beta5 <- par_target(seq(-0.10, 0.10, 0.10))
-beta6 <- par_target(seq(-0.10, 0.10, 0.10))
-beta7_ha <- par_target(seq(0.10, 0.30, 0.10))
-
-sigma_residual <- 0.10
-
-# in addition, we set the number of replicates
-n_rep <- seq(2, 5, 1)
-
-# wrap into a simulation grid
-exp1_sim_grid <- tidyr::expand_grid(n_rep,
-                                    alpha, beta1, beta2, beta3,
-                                    beta4, beta5, beta6,
-                                    beta7_ha,
-                                    sigma_residual)
-
-# check the data
-exp1_sim_grid
-```
+We used previous literature and some *unpublished* experimental data to assign realistic parameter values for the power analysis. $\alpha$ represents the mean native plant biomass (L) on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with these native species indicates that 2.5 g is reasonable for the dry-weight of these plants without microbes and at low nitrogen values (e.g. Goossens et al. 2023, *npj biodiversity*). For the effect of nitrogen (N), $\beta_1$, we used estimates from Minden and Olde Venterinck (2019, *Functional Ecology*) where, for these native species, an increase of between 0 and 15% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e. microbes, M) on native species, $\beta_2$, was taken from Schitzer et al. (2011, *Ecology*) who measured a reduction of plant biomass of between 10 and 40% due to the presence of microbes. Pilot data indicated a difference between natives and invasives that is between -10% and 30% (i.e. invasives have slightly less biomass or more biomass). For the interactions, we varied the strength between -10% and 10% which is also based on analysing pilot data. We estimated $\sigma_{residual}$ based on data from a previous, unpublished experiment on the same species. 
 
 Next, we load the function used to simulate power analysis for a single set of parameters and test the function for a set of parameters.
 
@@ -298,66 +267,42 @@ power_exp1_test <-
 power_exp1_test
 ```
 
-Now we run the power analysis 
+Now we run the power analysis as a background job based. To do this, we first set-up a grid of different parameters based on the previous data and run the simulation for each of these sets of parameters:
 
 ```{r}
-# Load required package
-library(parallel)
-library(dplyr)
+# re-run the job
+run_power_exp1 <- FALSE
 
-# Define number of cores
-n_cores <- 4
+# run the power analysis as a background job
+if (run_power_exp1) {
+  rstudioapi::jobRunScript(
+    path = here::here("01-plan/01-study-design/jobs/run-power-simulations-exp1.R"),
+    name = "power-simulations-exp1",
+    encoding = "unknown",
+    workingDir = NULL,
+    importEnv = FALSE,
+    exportEnv = "")
+}
+```
 
-# Parallelised loop
-power_exp1 <- mclapply(seq_len(nrow(exp1_sim_grid)), mc.cores = n_cores, function(i) {
-  
-  # print the iteration
-  print(i)
-  
-  # Get the input parameters
-  input_pars <- exp1_sim_grid[i, ]
-  
-  # Run the simulation
-  power_x <- sim_power_exp1(
-    n_sim = 100,
-    alpha_rej = 0.05,
-    n_rep = input_pars$n_rep,                   
-    sigma_residual = input_pars$sigma_residual,        
-    N_vals = log(c(4, 8, 16, 32, 64)),
-    M_vals = c(0, 1),
-    P_vals = c(0, 1),              
-    alpha = input_pars$alpha,                  
-    beta1 = input_pars$beta1,                  
-    beta2 = input_pars$beta2,
-    beta3 = input_pars$beta3,
-    beta4 = input_pars$beta4,
-    beta5 = input_pars$beta5,
-    beta6 = input_pars$beta6,
-    beta7_h0 = 0,
-    beta7_ha = input_pars$beta7_ha
-  )
-  
-  # Return results
-  tibble(
-    run = i,
-    type_1_error = power_x$type_I_error_rate,
-    type_2_error = power_x$type_II_error_rate,
-    power = power_x$power
-  )
-})
+Check the entire output dimensions to see if it ran properly:
 
-# bind into a data.frame
-power_exp1 <- dplyr::bind_rows(power_exp1)
-head(power_exp1)
+```{r}
+# load the power simulations
+power_exp1 <- readRDS(here::here("01-plan/01-study-design/jobs/power-simulations-exp1.rds"))
+
+# check the dimensions
+dim(power_exp1)
 ```
 
 ```{r}
-# bind to the parameter data
-power_exp1 <- dplyr::bind_cols(exp1_sim_grid, power_exp1)
-
 # print the first few rows
 head(power_exp1)
+```
 
+Plot the power curves:
+
+```{r}
 # summarise the data for plotting
 power_exp1$beta7_ha_char <- paste0((exp(power_exp1$beta7_ha) - 1)*100, "%")
 
@@ -366,23 +311,26 @@ power_exp1_sum <-
   power_exp1 |>
   dplyr::group_by(sigma_residual, beta7_ha_char, n_rep) |>
   dplyr::summarise(power_med = median(power),
-                   quantile_low = quantile(power, 0.10),
-                   quantile_high = quantile(power, 0.90))
+                   quantile_low = quantile(power, 0.025),
+                   quantile_high = quantile(power, 0.975))
 
 # plot the data
-ggplot(data = power_exp1_sum ,
-       mapping = aes(x = n_rep, y = power_med, colour = beta7_ha_char)) +
-  geom_ribbon(mapping = aes(x = n_rep, 
+library(ggplot2)
+ggplot() +
+  geom_ribbon(data = power_exp1_sum,
+              mapping = aes(x = n_rep, 
                             ymin = quantile_low, ymax = quantile_high,
-                            colour = beta7_ha_char),
-                width = 0) +
-  geom_point() +
-  geom_line() +
+                            fill = beta7_ha_char),
+              alpha = 0.2) +
+  geom_line(data = power_exp1_sum ,
+            mapping = aes(x = n_rep, y = power_med, colour = beta7_ha_char)) +
   geom_hline(yintercept = 0.50, linetype = "dashed") +
+  geom_vline(xintercept = 3, linetype = "dashed") +
+  xlab("N replicates") +
+  ylab("Power (median)") +
   facet_wrap(~sigma_residual) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
-
-
 
 
