@@ -7,7 +7,7 @@ library(tidyr)
 # convert percentage to parameter for the log-scale
 par_target <- function(target) log(1 + target)
 
-alpha <- log(2.5)
+alpha <- log(1.5)
 beta1 <- par_target(c(0.05, 0.10, 0.15))
 beta2 <- par_target(seq(0.10, 0.40, 0.10))
 beta3 <- par_target(seq(-0.10, 0.30, 0.10))
@@ -16,10 +16,10 @@ beta5 <- par_target(seq(-0.10, 0.10, 0.10))
 beta6 <- par_target(seq(-0.10, 0.10, 0.10))
 beta7_ha <- par_target(c(0.05, 0.10, 0.20, 0.30))
 
-sigma_residual <- c(0.10, 0.20, 0.30)
+sigma_residual <- c(0.10)
 
 # in addition, we set the number of replicates
-n_rep <- seq(2, 5, 1)
+n_rep <- seq(2, 9, 1)
 
 # wrap into a simulation grid
 exp1_sim_grid <- tidyr::expand_grid(n_rep,

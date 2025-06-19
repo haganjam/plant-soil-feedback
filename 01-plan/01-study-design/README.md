@@ -1,3 +1,4 @@
+
 # Pre-registered analysis
 
 You can access .html previews of the following documents that we used to plan the experiment:
@@ -11,5 +12,16 @@ See the html preview [here](https://htmlpreview.github.io/?https://github.com/ha
 ## 02-data-simulation
 
 This is an overview of the expected structure of the data, the models that we will use to test the various hypotheses and various other kinds of planning for the analysis.
+
+See the html preview [here](https://htmlpreview.github.io/?https://github.com/haganjam/plant-soil-feedback/blob/main/01-plan/01-pre-registration/02-data-simulation.html)
+
+## 03-power-analysis
+
+In this quarto document, we run a power-analysis that was used to plan our experiment:
+
+See the html preview [here](https://htmlpreview.github.io/?https://github.com/haganjam/plant-soil-feedback/blob/main/01-plan/01-pre-registration/03-power-simulations.html)
+
+
+
 
 

@@ -15,6 +15,9 @@ In this document, we generate a data simulation that describes the planned study
 # load relevant libraries
 library(ggplot2)
 library(dplyr)
+
+# load relevant functions
+source(here::here("functions/plot_theme.R"))
 ```
 
 ## Experiment 1 {#sec-experiment-1}
@@ -207,13 +210,32 @@ In this initial simulation, we set the $\beta_7$ as greater than 0 which means t
 From this graph, it is easy to see that, for invasives (i.e. right panel), the plant-soil feedback is actually positive at higher levels of N whilst it stays negative across the N gradient for natives (i.e. left panel).
 
 ```{r}
+# wrangle data for plotting
+plot_x <- 
+  dplyr::tibble(N = N, M = as.character(M), P = as.character(P), B = B) |>
+  dplyr::mutate(M = ifelse(M == 0, "Sterile soil", "Conditioned soil"),
+                P = ifelse(P == 0, "Native species", "Invasive species"))
+
+# reorder levels
+plot_x$M <- factor(plot_x$M, levels = c("Sterile soil", "Conditioned soil"))
+plot_x$P <- factor(plot_x$P, levels = c("Native species", "Invasive species"))
+
 # plot the biomass values for different N values with and without microbes for native/invasives
-ggplot(data = dplyr::tibble(N = N, M = as.character(M), P = as.character(P), B = B),
+p1 <-
+  ggplot(data = plot_x,
        mapping = aes(x = N, y = B, colour = M)) +
   geom_jitter(alpha = 0.5) +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", show.legend = FALSE) +
+  ylab("Biomass (g)") +
+  xlab("ln(nitrogen mg)") +
   facet_wrap(~P) +
-  theme_bw()
+  theme_meta() +
+  theme(legend.title = element_blank())
+p1
+
+# export the figure
+ggsave(filename = here::here("01-plan/01-study-design/figures-tables/fig-1.png"), p1,
+       dpi = 800, width = 8, height = 4.5)
 ```
 
 For further analysis and experimentation, we have wrapped this generative model into a function (**sim_exp1()**):
@@ -244,13 +266,33 @@ test_data <- sim_exp1(n_rep = 100,
 # fit a linear model to these data
 lm_test <- lm(log(B) ~ N + M + P + N:M + N:P + M:P + N:M:P, data = test_data)
 
+# wrangle data for plotting
+plot_x <- 
+  test_data |>
+  dplyr::mutate(M = ifelse(M == 0, "Sterile soil", "Conditioned soil"),
+                P = ifelse(P == 0, "Native species", "Invasive species"))
+
+# reorder levels
+plot_x$M <- factor(plot_x$M, levels = c("Sterile soil", "Conditioned soil"))
+plot_x$P <- factor(plot_x$P, levels = c("Native species", "Invasive species"))
+
 # plot the biomass values for different N values with and without microbes for native/invasives
-ggplot(data = test_data |> dplyr::mutate(M = as.character(M), P = as.character(P)),
+p1 <-
+  ggplot(data = plot_x,
        mapping = aes(x = N, y = B, colour = M)) +
   geom_jitter(alpha = 0.5) +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", show.legend = FALSE) +
   facet_wrap(~P) +
-  theme_bw()
+  ylab("Biomass (g)") +
+  xlab("ln(nitrogen mg)") +
+  facet_wrap(~P) +
+  theme_meta() +
+  theme(legend.title = element_blank())
+p1
+
+# export the figure
+ggsave(filename = here::here("01-plan/01-study-design/figures-tables/fig-2.png"), p1,
+       dpi = 800, width = 8, height = 4.5)
 ```
 
 ### Expected outcomes

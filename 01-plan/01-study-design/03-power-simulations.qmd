@@ -9,6 +9,16 @@ execute:
   warning: false
 ---
 
+```{r}
+# load relevant libraries
+library(tictoc)
+library(ggplot2)
+
+# load relevant functions
+source(here::here("functions/plot_theme.R"))
+```
+
+
 ## Experiment 1 {#sec-experiment-1}
 
 For @sec-experiment-1, we are evaluating the statistical power of rejecting the following null hypothesis:
@@ -235,13 +245,19 @@ When \(M=1\) and \(P=1\), the full “\(N\)-slope” picks up all main and two�
 
 $\sigma_{residual}$ - residual standard deviation
 
-We used previous literature and some *unpublished* experimental data to assign realistic parameter values for the power analysis. $\alpha$ represents the mean native plant biomass (L) on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with these native species indicates that 2.5 g is reasonable for the dry-weight of these plants without microbes and at low nitrogen values (e.g. Goossens et al. 2023, *npj biodiversity*). For the effect of nitrogen (N), $\beta_1$, we used estimates from Minden and Olde Venterinck (2019, *Functional Ecology*) where, for these native species, an increase of between 0 and 15% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e. microbes, M) on native species, $\beta_2$, was taken from Schitzer et al. (2011, *Ecology*) who measured a reduction of plant biomass of between 10 and 40% due to the presence of microbes. Pilot data indicated a difference between natives and invasives that is between -10% and 30% (i.e. invasives have slightly less biomass or more biomass). For the interactions, we varied the strength between -10% and 10% which is also based on analysing pilot data. We estimated $\sigma_{residual}$ based on data from a previous, unpublished experiment on the same species. 
+We used previous literature and some *unpublished* experimental data to assign realistic parameter values for the power analysis. $\alpha$ represents the mean native plant biomass (L) on the log-scale without microbes, for the lowest level of nitrogen (4 mg). Previous work with these native species indicates that 1 g is reasonable for the dry-weight of these plants without microbes and at low nitrogen values (e.g. Goossens et al. 2023, *npj biodiversity*). For the effect of nitrogen (N), $\beta_1$, we used estimates from Minden and Olde Venterinck (2019, *Functional Ecology*) where, for these native species, an increase of between 0 and 15% per log-unit of nitrogen was measured. The effect of plant-soil feedbacks (i.e. microbes, M) on native species, $\beta_2$, was taken from Schitzer et al. (2011, *Ecology*) who measured a reduction of plant biomass of between 10 and 40% due to the presence of microbes. Pilot data indicated a difference between natives and invasives that is between -10% and 30% (i.e. invasives have slightly less biomass or more biomass). For the interactions, we varied the strength between -10% and 10% which is also based on analysing pilot data. We estimated $\sigma_{residual}$ based on data from a previous, unpublished experiment on the same species. 
 
 Next, we load the function used to simulate power analysis for a single set of parameters and test the function for a set of parameters.
 
 ```{r}
 # load the code for simulation experiment 1
 source(here::here("functions/sim_power_exp1.R"))
+```
+
+
+```{r}
+# check the timing
+tic()
 
 # run the power analysis
 power_exp1_test <- 
@@ -265,6 +281,9 @@ power_exp1_test <-
 
 # print the results
 power_exp1_test
+
+# stop the timer
+toc()
 ```
 
 Now we run the power analysis as a background job based. To do this, we first set-up a grid of different parameters based on the previous data and run the simulation for each of these sets of parameters:
@@ -306,6 +325,10 @@ Plot the power curves:
 # summarise the data for plotting
 power_exp1$beta7_ha_char <- paste0((exp(power_exp1$beta7_ha) - 1)*100, "%")
 
+# relevel
+power_exp1$beta7_ha_char <- factor(power_exp1$beta7_ha_char,
+                                   levels = c("5%", "10%", "20%", "30%")) 
+
 # summarise the data
 power_exp1_sum <-
   power_exp1 |>
@@ -314,9 +337,25 @@ power_exp1_sum <-
                    quantile_low = quantile(power, 0.025),
                    quantile_high = quantile(power, 0.975))
 
+# recategorise the labels
+power_exp1_sum <-
+  power_exp1_sum |>
+  dplyr::mutate(
+    sigma_residual_lab = dplyr::case_when(
+      sigma_residual == 0.10 ~ "Residual sd: 0.10",
+      sigma_residual == 0.20 ~ "Residual sd: 0.20",
+      sigma_residual == 0.30 ~ "Residual sd: 0.30"
+    ))
+
+# remove the high residual sd
+power_exp1_sum <-
+  power_exp1_sum |>
+  dplyr::filter(sigma_residual < 0.15)
+
 # plot the data
 library(ggplot2)
-ggplot() +
+p1 <-
+  ggplot() +
   geom_ribbon(data = power_exp1_sum,
               mapping = aes(x = n_rep, 
                             ymin = quantile_low, ymax = quantile_high,
@@ -326,11 +365,23 @@ ggplot() +
             mapping = aes(x = n_rep, y = power_med, colour = beta7_ha_char)) +
   geom_hline(yintercept = 0.50, linetype = "dashed") +
   geom_vline(xintercept = 3, linetype = "dashed") +
+  labs(colour = "Beta7 HA", fill = "Beta7 HA",) +
+  scale_colour_viridis_d(end = 0.9) +
+  scale_fill_viridis_d(end = 0.9) +
   xlab("N replicates") +
   ylab("Power (median)") +
-  facet_wrap(~sigma_residual) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  # facet_wrap(~sigma_residual_lab) +
+  theme_meta() +
+  theme(legend.position = "bottom",
+        strip.background = element_blank(),
+        strip.text = element_text(colour = "black", size = 12))
+
+# check the graph
+p1
+
+# save the plot
+ggsave(filename = here::here("01-plan/01-study-design/figures-tables/fig-5.png"), p1,
+       dpi = 800, width = 5.5, height = 4.5)
 ```
 
 
