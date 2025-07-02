@@ -1,0 +1,18 @@
+Repetition_nr = number of the pot, necessary to know which plants were in the same pot (ranging from 1-3)
+
+Nitrogen_level = mg of N given over the course of 8 weeks per plant (4, 8, 16, 32 or 64 mg N/plant in 8 weeks)
+
+Soil_conditioning = conditioned by the community of interest (T for test, community of interest are 5 species: Agrostis capillaris, Ranunculus repens, Centaurea jacea, Plantago lanceolata and the invasive species) OR conditioned by a different community (C for Control, control community were 5 individuals of 3 species: 2 Achillea millefolium, 2 Rumex acetosa and 1 Holcus lanatus)
+
+Setup_IAN = type of pot, I = invasive alone, 1 species per pot; A = All species, 5 species per pot; N = Natives alone, 4 species per pot
+
+Invasive_species = which invasive species was used for the conditioning phase of this pot (and is also present in the pot when Setup_IAN is I or A). 4 possibilities: Solidago_gigantea, Phytolacca_americana, Sporobolus_indicus, Erigeron_canadensis
+
+Species = which species in the pot is the data about. 5 possibilities: Agrostis, Ranunculus, Centaurea, Plantago, Invasive
+
+Status = is the species invasive or native (I for invasive or N for native)
+
+Shoot_dry_weight = Shoot dry weight of the species in mg
+
+Root_dry_weight = Root dry weight of the species in mg
+

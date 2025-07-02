@@ -1,0 +1,259 @@
+---
+title: "Exploratory Data Analysis"
+format: html
+editor: visual
+---
+
+This notebook documents the exploratory data analysis for this project.
+
+## Load the raw data
+
+We start by loading the raw .csv file from the experiment:
+
+```{r}
+# load the raw data
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"),
+                            guess_max = 1000)
+```
+
+We then check that the data loaded and parsed correctly:
+
+```{r}
+# view the raw data
+View(dat_raw)
+```
+
+## Split the data
+
+### Experiment 1
+
+To get the data for experiment 1 is based on the data where the `Setup_IAN` variable is either "I" or "N". Therefore, we filter the data based on this criteria:
+
+```{r}
+# filter the data to experiment 1
+exp1 <-
+  dat_raw |>
+  dplyr::filter(Setup_IAN %in% c("I", "N"))
+head(exp1)
+```
+
+#### Basic data cleaning
+
+The real data cleaning will be done via a function but for the purpose of exploratory data analysis, we need to some basic data cleaning.
+
+```{r}
+# check the unique values
+exp1$Invasive_species |> unique()
+
+# replace the All with the none
+exp1$Invasive_species <- 
+  with(exp1,
+       ifelse(Invasive_species == "All", "none", Invasive_species))
+```
+
+```{r}
+# sum-up the native species
+exp1 <-
+  exp1 |>
+  dplyr::group_by(Setup_IAN, Nitrogen_level, Soil_conditioning,
+                  Invasive_species,
+                  Repetition_nr) |>
+  dplyr::summarise(Shoot_dry_weight = sum(Shoot_dry_weight, na.rm = TRUE),
+                   Root_dry_weight = sum(Root_dry_weight, na.rm = TRUE)) |>
+  dplyr::ungroup()
+```
+
+```{r}
+# check the unique treatment values
+exp1 |>
+  dplyr::select(Setup_IAN, Nitrogen_level, Soil_conditioning,
+                Invasive_species) |>
+  dplyr::distinct() |>
+  View()
+```
+
+The column `Invasive_species` represents the focal invasive species. However, it's important to note that if `Soil_conditioning` is C, it means that the soil was conditioned with other species. It is just confusing that soil conditioned with other species can have: `Soil_conditioning == C` and `Invasive_species == Erigeron_canadensis`. The variables are set-up like this so that, for a given invasive species, the filtering can be done simply as:
+
+  `dplyr::filter(Invasive_species %in% c("Erigeron_canadensis", "none"))`
+  
+This then gives a complete data-set to analyse for a given invasive species.
+
+```{r}
+# check the unique treatment values for one species
+exp1 |>
+  dplyr::select(Setup_IAN, Nitrogen_level, Soil_conditioning,
+                Invasive_species) |>
+  dplyr::distinct() |>
+  dplyr::filter(Invasive_species %in% c("Erigeron_canadensis", "none")) |>
+  View()
+```
+
+
+### Experiment 2
+
+To get the data for experiment 2 is based on the data where the `Setup_IAN` variable is either "A" (i.e. natives and invasives grown together) or "N". Therefore, we filter the data based on this criteria:
+
+```{r}
+# filter the data to experiment 2
+exp2 <-
+  dat_raw |>
+  dplyr::filter(Setup_IAN %in% c("A", "N"))
+head(exp2)
+```
+
+The real data cleaning will be done via a function but for the purpose of exploratory data analysis, we need to some basic data cleaning.
+
+```{r}
+# check the unique values
+exp2$Invasive_species |> unique()
+
+# replace the All with the none
+exp2$Invasive_species <- 
+  with(exp2,
+       ifelse(Invasive_species == "All", "none", Invasive_species))
+```
+
+```{r}
+# sum-up the native species
+exp2 <-
+  exp2 |>
+  dplyr::group_by(Setup_IAN, Nitrogen_level, Soil_conditioning,
+                  Invasive_species,
+                  Repetition_nr) |>
+  dplyr::summarise(Shoot_dry_weight = sum(Shoot_dry_weight, na.rm = TRUE),
+                   Root_dry_weight = sum(Root_dry_weight, na.rm = TRUE)) |>
+  dplyr::ungroup()
+```
+
+Check the set-up for a given species. The column `Invasive_species` represents the focal invasive species. However, it's important to note that if `Soil_conditioning` is C, it means that the soil was conditioned with other species. It is just confusing that soil conditioned with other species can have: `Soil_conditioning == C` and `Invasive_species == Erigeron_canadensis`. The variables are set-up like this so that, for a given invasive species, the filtering can be done simply as:
+
+  `dplyr::filter(Invasive_species %in% c("Erigeron_canadensis", "none"))`
+  
+This then gives a complete data-set to analyse for a given invasive species.
+
+```{r}
+# check the unique treatment values
+exp2 |>
+  dplyr::select(Setup_IAN, Nitrogen_level, Soil_conditioning,
+                Invasive_species) |>
+  dplyr::distinct() |>
+  dplyr::filter(Invasive_species %in% c("Erigeron_canadensis", "none")) |>
+  View()
+```
+
+
+## Explore
+
+```{r}
+# load relevant functions
+source(here::here("functions/eda-func.R"))
+```
+
+The experiment was repeated for four different invasive species. Therefore, we repeat the exploratory analysis for the different species.
+
+```{r}
+# set the species name
+# "Erigeron_canadensis", "Phytolacca_americana" "Solidago_gigantea", "Sporobolus_indicus"  
+i_sp_name <- "Erigeron_canadensis"
+```
+
+
+### Experiment 1
+
+```{r}
+# get the relevant dataset
+exp1_sel <- dplyr::filter(exp1, Invasive_species %in% c("none", "Erigeron_canadensis"))
+head(exp1_sel)
+```
+
+#### Summary statistics
+
+We start by generating the basic summary statistics for each of the different variables using a wrapped version of the `summary()` function:
+
+```{r}
+# calculate summary statistics per variable
+eda_summary_stat(data = exp1_sel, vars = names(exp1_sel))
+```
+
+
+#### Variation
+
+Plot histograms of the different continuous variables:
+
+```{r}
+# plot histograms
+eda_plot_hist(data = exp1_sel, vars = c("Shoot_dry_weight", "Root_dry_weight"))
+```
+
+
+#### Missing values
+
+Check each variable for missing values:
+
+```{r}
+# count the missing values in each of the different variables
+eda_is_na(data = exp1_sel)
+```
+
+
+#### Covariation
+
+Plot a set of standard bivariate plots which are based on the kind of variable (i.e. is it categorical-categorical, categorical-continuous or continuous-continuous):
+
+```{r}
+# plot all possible bivariate relationships between variables
+sapply(eda_plot_bivariate(exp1_sel), plot)
+```
+
+```{r}
+# plot on the log-scale
+plot(log(exp1_sel$Shoot_dry_weight), log(exp1_sel$Root_dry_weight))
+```
+
+
+#### Patterns and models
+
+```{r}
+# plot a few conditional plots
+eda_plot_bivariate_covariate(exp1_sel,
+                             x_var = "Nitrogen_level",
+                             y_var = "Shoot_dry_weight",
+                             covariates = "Soil_conditioning")
+```
+
+```{r}
+# plot a few conditional plots
+eda_plot_bivariate_covariate(exp1_sel,
+                             x_var = "Setup_IAN",
+                             y_var = "Shoot_dry_weight",
+                             covariates = "Soil_conditioning")
+```
+
+
+#### Additional exploration
+
+```{r}
+# plot the data as treatments
+ggplot(data = exp1_sel,
+       mapping = aes(x = log(Nitrogen_level), y = log(Shoot_dry_weight), 
+                     colour = Soil_conditioning)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Setup_IAN) +
+  theme_meta()
+```
+
+```{r}
+# plot the data as treatments
+ggplot(data = exp1_sel |> dplyr::mutate(Total_weight = (Root_dry_weight + Shoot_dry_weight)),
+       mapping = aes(x = log(Nitrogen_level), y = log(Total_weight), 
+                     colour = Soil_conditioning)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Setup_IAN) +
+  theme_meta()
+```
+
+
+
+
