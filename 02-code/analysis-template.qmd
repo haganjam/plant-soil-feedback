@@ -41,18 +41,48 @@ fix_labels <- function(x) {
 }
 ```
 
-## Experiment 1 {#sec-experiment-1}
-
 ```{r}
-# specify the data-file name
-dat_name <- "ex1-test-data.rds"
+# set location for outputted figures and tables
+figure_table_path <- here::here("03-report/figures-tables")
 ```
 
-```{r}
-# load the data
-dat_ex1 <- readRDS(here::here(file.path("data", dat_name)))
 
-# check the first few rows
+## Load the raw data
+
+The data for both experiments (i.e. @sec-experiment-1 and @sec-experiment-2) are in one raw data file. The cleaning functions `02-code/02-clean-exp1` and `02-code/03-clean-exp2` process the data for further analysis. These functions also contain options for assessing the sensitivity of the results to outliers and other factors identified during exploratory data analysis.
+
+```{r}
+# load the raw data
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"),
+                            guess_max = 1000)
+```
+
+## Experiment 1 {#sec-experiment-1}
+
+### Data cleaning 
+
+We start by loading the data cleaning function for experiment 1:
+
+```{r}
+# load the experiment 1 data cleaning function
+source(here::here("02-code/02-clean-exp1.R"))
+```
+
+Choose one of the species: "Erigeron_canadensis", "Phytolacca_americana", "Solidago_gigantea", "Sporobolus_indicus":
+
+```{r}
+# set the species
+i_species_sel <- "Erigeron_canadensis"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex1 <- clean_exp1(data = dat_raw,
+                      i_species = i_species_sel,
+                      exclude_high_N = exclude_high_N) 
+
+# check the data
 head(dat_ex1)
 ```
 
@@ -169,8 +199,6 @@ drop1(lm_ex1, test = "Chisq")
 lm_ex1_sum
 ```
 
-From this, we would reject the null hypothesis ($H_0: \beta_7 = 0$) and accept the alternative $H_A:  \beta_7 \neq 0$ where, specifically, $\beta_7$ is greater than 0. This would indicate that the effect of microbes become more positive (or less negative) with nitrogen for invasive species but not for native species.
-
 We can summarise this into a table using `gtsummary` package. Note that to see which variables can be modified in the header, use `show_header_names(tbl)`.
 
 ```{r}
@@ -189,8 +217,16 @@ ex1_tbl <-
 
 # print the table
 ex1_tbl
-```
 
+# export the table as a .rds file
+
+# generate the path
+output_path <- file.path(figure_table_path,
+                         paste0("ex1-tbl-", i_species_sel, "-", "exclude-high-N-", exclude_high_N, ".rds"))
+
+# export the object
+saveRDS(object = ex1_tbl, file = output_path)
+```
 
 
 ### Data visualisation
@@ -246,11 +282,11 @@ The second visualisation is to visualise the raw data and the model that we used
 pred_ex1_mod <-
   tidyr::expand_grid(M = factor(c(0, 1)),
                      P = factor(c(0, 1)),
-                     N = seq(0, 2.8, 0.05))
+                     N = seq(0, max(dat_ex1_mod$N) + 0.05, 0.05))
 
 # generate the predictions
 pred_ex1 <-
-  predict(lm_ex1, newdata = pred_ex1_mod, interval = "prediction") |> 
+  predict(lm_ex1, newdata = pred_ex1_mod, interval = "confidence") |> 
   as.data.frame() |>
   dplyr::tibble()
 
@@ -265,7 +301,15 @@ dat_ex1_plot <- fix_labels(x = dat_ex1_mod)
 pred_ex1_plot <- fix_labels(x = pred_ex1_mod)
 
 ## function for plotting
-exp1_plot <- function(x_dat, x_pred, P_sel, y_lims) {
+exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$log_B, x_pred$upper, x_pred$lower)) + c(-0.05, 0.05)
+    } else {
+      y_lims
+    }
   
   ggplot() +
   ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(P == P_sel),
@@ -280,7 +324,7 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims) {
   scale_colour_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
   scale_fill_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
   scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
-  scale_y_continuous(limits = y_lims) +
+  scale_y_continuous(limits = y_lim_range) +
   ylab("ln(Biomass) (g)") +
   xlab("ln(Nitrogen) (mg)") +
   ggtitle(paste0(P_sel, " species"))+
@@ -291,18 +335,39 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims) {
 }
 
 # native plot
-p_n <- exp1_plot(x_dat = dat_ex1_plot, x_pred = pred_ex1_plot, 
-                 P_sel = "Native", y_lims = c(0.4, 2.35))
+if (i_species_sel == "Erigeron_canadensis") {
   
+  # create the native species graph
+  p_n <- exp1_plot(x_dat = dat_ex1_plot, x_pred = pred_ex1_plot, 
+                 P_sel = "Native", y_lims = NA)
+  
+  # create the invasive species graph
+  output_path <- file.path(figure_table_path,
+                           paste0("ex1-fig-natives-", "exclude-high-N-", exclude_high_N, ".rds"))
+
+  # export the object
+  saveRDS(object = p_n, file = output_path)
+  
+}
+
 # invasive plot
 p_i <- exp1_plot(x_dat = dat_ex1_plot, x_pred = pred_ex1_plot, 
-                 P_sel = "Invasive", y_lims = c(0.4, 2.35))
+                 P_sel = "Invasive", y_lims = NA)
+
+# generate the path
+output_path <- file.path(figure_table_path,
+                         paste0("ex1-fig-", i_species_sel, "-", "exclude-high-N-", exclude_high_N, ".rds"))
+
+# export the object
+saveRDS(object = p_i, file = output_path)
 
 # bind the plots using patchwork
 p_n + p_i + 
   plot_layout(guides = "collect") +
-  plot_annotation(tag_levels = "a")
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+
 ```
+
 
 ## Simulation experiment {#sec-simulation-experiment}
 
@@ -442,7 +507,15 @@ sim_df_sum <-
 sim_df_sum <- fix_labels(x = sim_df_sum)
 
 ## function for plotting
-sim_exp_plot <- function(x_dat, M_sel, y_lims, col1, col2) {
+sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$B_pi_low, x_dat$B_pi_high)) + c(-0.025, 0.025)
+    } else {
+      y_lims
+    }
   
   ggplot() +
   geom_line(data = x_dat |> dplyr::filter(M == M_sel),
@@ -453,7 +526,7 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims, col1, col2) {
   scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
-  scale_y_continuous(limits = y_lims) +
+  scale_y_continuous(limits = y_lim_range) +
   ylab("ln(Biomass) (g)") +
   xlab("ln(Nitrogen) (mg)") +
   ggtitle(paste0(M_sel))+
@@ -467,13 +540,13 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims, col1, col2) {
 # No microbes
 p_nm <- sim_exp_plot(x_dat = sim_df_sum, 
                      M_sel = "No microbes", 
-                     y_lims = c(-5.3, 2.1),
+                     y_lims = NA,
                      col1 = "gray0", col2 = "gray60")
   
 # invasive plot
 p_m <- sim_exp_plot(x_dat = sim_df_sum, 
                     M_sel = "Microbes", 
-                    y_lims = c(-5.3, 2.1),
+                    y_lims = NA,
                     col1 = "lightgreen", col2 = "forestgreen")
 
 # bind the plots using patchwork
@@ -487,16 +560,30 @@ p_nm + p_m +
 
 Based on the @sec-simulation-experiment, we predict that $\gamma_7 < 0$ in @sec-experiment-2 i.e. the effect of invasives on native biomass increases (i.e. competition gets stronger) with increasing nitrogen in the presence of microbes.
 
+### Data cleaning 
+
+We start by loading the data cleaning function for experiment 1:
+
 ```{r}
-# specify the data-file name
-dat_name <- "ex2-test-data.rds"
+# load the experiment 1 data cleaning function
+source(here::here("02-code/03-clean-exp2.R"))
 ```
 
-```{r}
-# load the data
-dat_ex2 <- readRDS(here::here(file.path("data", dat_name)))
+Choose one of the species: "Erigeron_canadensis", "Phytolacca_americana", "Solidago_gigantea", "Sporobolus_indicus":
 
-# check the first few rows
+```{r}
+# set the species
+i_species_sel <- "Erigeron_canadensis"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex2 <- clean_exp2(data = dat_raw,
+                      i_species = i_species_sel,
+                      exclude_high_N = exclude_high_N) 
+
+# check the data
 head(dat_ex2)
 ```
 
@@ -632,6 +719,15 @@ ex2_tbl <-
 
 # print the table
 ex2_tbl
+
+# export the table as a .rds file
+
+# generate the path
+output_path <- file.path(figure_table_path,
+                         paste0("ex2-tbl-", i_species_sel, "-", "exclude-high-N-", exclude_high_N, ".rds"))
+
+# export the object
+saveRDS(object = ex2_tbl, file = output_path)
 ```
 
 
@@ -682,7 +778,7 @@ The second visualisation is to visualise the raw data and the model that we used
 pred_ex2_mod <-
   tidyr::expand_grid(M = factor(c(0, 1)),
                      I = factor(c(0, 1)),
-                     N = seq(0, 2.8, 0.05))
+                     N = seq(0, max(dat_ex2_mod$N) + 0.05, 0.05))
 
 # generate the predictions
 pred_ex2 <-
@@ -701,7 +797,15 @@ dat_ex2_plot <- fix_labels(x = dat_ex2_mod)
 pred_ex2_plot <- fix_labels(x = pred_ex2_mod)
 
 ## function for plotting
-exp2_plot <- function(x_dat, x_pred, M_sel, y_lims, col1, col2) {
+exp2_plot <- function(x_dat, x_pred, M_sel, y_lims = NA, col1, col2) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$log_B, x_pred$upper, x_pred$lower)) + c(-0.05, 0.05)
+    } else {
+      y_lims
+    }
   
   ggplot() +
    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
@@ -716,7 +820,7 @@ exp2_plot <- function(x_dat, x_pred, M_sel, y_lims, col1, col2) {
   scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
-  scale_y_continuous(limits = y_lims) +
+  scale_y_continuous(limits = y_lim_range) +
   ylab("ln(Biomass) (g)") +
   xlab("ln(Nitrogen) (mg)") +
   ggtitle(paste0(M_sel))+
@@ -730,13 +834,13 @@ exp2_plot <- function(x_dat, x_pred, M_sel, y_lims, col1, col2) {
 # No microbes
 p_nm <- exp2_plot(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
                   M_sel = "No microbes", 
-                  y_lims = c(0.13, 2),
+                  y_lims = NA,
                   col1 = "gray0", col2 = "gray60")
   
 # invasive plot
 p_m <- exp2_plot(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
                  M_sel = "Microbes", 
-                 y_lims = c(0.13, 2),
+                 y_lims = NA,
                  col1 = "lightgreen", col2 = "forestgreen")
 
 # bind the plots using patchwork
@@ -752,7 +856,15 @@ Finally, we also compare the predictions made using the @sec-simulation-experime
 ```{r}
 ## function for plotting
 exp2_sim_compare <- function(x_dat, x_sim, 
-                             M_sel, y_lims, col1, col2) {
+                             M_sel, y_lims = NA, col1, col2) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_sim$B_pi_low, x_sim$B_pi_high)) + c(-0.025, 0.025)
+    } else {
+      y_lims
+    }
   
   ggplot() +
     geom_line(data = x_sim |> dplyr::filter(M == M_sel),
@@ -766,7 +878,7 @@ exp2_sim_compare <- function(x_dat, x_sim,
     scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
-    scale_y_continuous(limits = y_lims) +
+    scale_y_continuous(limits = y_lim_range) +
     ylab("ln(Biomass) (g)") +
     xlab("ln(Nitrogen) (mg)") +
     ggtitle(paste0(M_sel))+
@@ -781,14 +893,14 @@ exp2_sim_compare <- function(x_dat, x_sim,
 p_nm <-
   exp2_sim_compare(x_dat = dat_ex2_plot, x_sim = sim_df_sum, 
                    M_sel = "No microbes", 
-                   y_lims = c(-5.3, 2.1),
+                   y_lims = NA,
                    col1 = "gray0", col2 = "gray60")
   
 # invasive plot
 p_m <- 
   exp2_sim_compare(x_dat = dat_ex2_plot, x_sim = sim_df_sum, 
                    M_sel = "Microbes", 
-                   y_lims = c(-5.3, 2.1),
+                   y_lims = NA,
                    col1 = "lightgreen", col2 = "forestgreen")
 
 # bind the plots using patchwork

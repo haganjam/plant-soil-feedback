@@ -254,6 +254,18 @@ ggplot(data = exp1_sel |> dplyr::mutate(Total_weight = (Root_dry_weight + Shoot_
   theme_meta()
 ```
 
-
+```{r}
+# plot the data as treatments
+# remove highest nitrogen level
+ggplot(data = exp1_sel |> 
+         dplyr::mutate(Total_weight = (Root_dry_weight + Shoot_dry_weight)) |>
+         dplyr::filter(Nitrogen_level < 50),
+       mapping = aes(x = log(Nitrogen_level), y = log(Total_weight), 
+                     colour = Soil_conditioning)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~Setup_IAN) +
+  theme_meta()
+```
 
 
