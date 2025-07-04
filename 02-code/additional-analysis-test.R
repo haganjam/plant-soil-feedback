@@ -10,17 +10,15 @@ data <- dat_ex1_noM_Nat
 data <- dat_ex1_M_Inv
 data <- dat_ex1_M_Nat
 
-
+data
 
 # create list of model formulas
-model_list <- list(
+formulas <- list(
   m1 = B ~ N,
   m2 = B ~ bs(N, degree = 2),
   m3 = B ~ bs(N, degree = 3),
   m3 = B ~ bs(N, degree = 4)
 )
-
-formulas <- model_list
 
 # specify the cross-validation method
 ctrl <- trainControl(method = "LOOCV")
@@ -55,6 +53,10 @@ for (name in names(formulas)) {
     data = data,
   )
   }
+
+list("LOO_est" = loo_df,
+     "Model_fits" = model_fits)
+
 
 
 # predict new data from the best model

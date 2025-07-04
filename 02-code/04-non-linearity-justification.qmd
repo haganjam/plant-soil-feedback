@@ -1,0 +1,207 @@
+---
+title: "Non-linear relationships"
+format: html
+editor: source
+---
+
+The `01-plan/01-study-design/02-data-simulation.qmd` documents the original analysis plan. In addition, the `02-code/analysis-template.qmd` provides code for how we planned to analyse the data and test our hypotheses. More specifically, in these plans, we had assumed that, on a ln-scale, we could model the relationship between nitrogen ($N$) and total biomass ($B$). However, following data exploration `02-code/01-exploratory-data-analysis.qmd`, it was clear that even on a log-scale, the relationship was not adequately described by a linear model.
+
+## Testing for non-linearity
+
+To show that the data for both experiment 1 and experiment 2 are better described by non-linear functions, we used cross-validation. Specifically, we fit basis-splines of increasing complexity for the log(N) variable and compared the results using leave-one-out cross-validation. When the fit was better for the non-linear models than for the linear model, we concluded that there was justification for using the non-linear models.
+
+```{r}
+# load the raw data
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"),
+                            guess_max = 1000)
+```
+
+### Experiment 1
+
+We start by loading the functions that we use to clean the data and the functions we use to compare the models using leave-one-out cross validation:
+
+```{r}
+# load the experiment 1 data cleaning function
+source(here::here("02-code/02-clean-exp1.R"))
+
+# load the compare models via LOO function
+source(here::here("functions/compare_models_loocv.R"))
+```
+
+Next, we set-up the relevant model list:
+
+```{r}
+# set-up the list of models
+source(here::here("02-code/model_list.R"))
+model_list
+```
+
+
+#### Erigeron_canadensis
+
+```{r}
+# set the species
+i_species_sel <- "Erigeron_canadensis"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex1_mod <- 
+  clean_exp1(data = dat_raw,
+             i_species = i_species_sel,
+             exclude_high_N = exclude_high_N) |>
+  dplyr::mutate(log_B = log(B),
+                N = N - min(N),
+                P = factor(P),
+                M = factor(M))
+
+# check the data
+head(dat_ex1_mod)
+```
+
+Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
+
+```{r}
+# run the cross-validation procedure
+ec_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+
+# check the models
+ec_mod$LOO_est
+```
+
+
+#### Phytolacca_americana
+
+```{r}
+# set the species
+i_species_sel <- "Phytolacca_americana"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex1_mod <- 
+  clean_exp1(data = dat_raw,
+             i_species = i_species_sel,
+             exclude_high_N = exclude_high_N) |>
+  dplyr::mutate(log_B = log(B),
+                N = N - min(N),
+                P = factor(P),
+                M = factor(M))
+
+# check the data
+head(dat_ex1_mod)
+```
+
+Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
+
+```{r}
+# run the cross-validation procedure
+pa_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+
+# check the models
+pa_mod$LOO_est
+```
+
+
+#### Solidago_gigantea
+
+```{r}
+# set the species
+i_species_sel <- "Solidago_gigantea"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex1_mod <- 
+  clean_exp1(data = dat_raw,
+             i_species = i_species_sel,
+             exclude_high_N = exclude_high_N) |>
+  dplyr::mutate(log_B = log(B),
+                N = N - min(N),
+                P = factor(P),
+                M = factor(M))
+
+# check the data
+head(dat_ex1_mod)
+```
+
+Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
+
+```{r}
+# run the cross-validation procedure
+sg_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+
+# check the models
+sg_mod$LOO_est
+```
+
+
+#### Sporobolus_indicus
+
+```{r}
+# set the species
+i_species_sel <- "Sporobolus_indicus"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+
+# clean the data
+dat_ex1_mod <- 
+  clean_exp1(data = dat_raw,
+             i_species = i_species_sel,
+             exclude_high_N = exclude_high_N) |>
+  dplyr::mutate(log_B = log(B),
+                N = N - min(N),
+                P = factor(P),
+                M = factor(M))
+
+# check the data
+head(dat_ex1_mod)
+```
+
+Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
+
+```{r}
+# run the cross-validation procedure
+si_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+
+# check the models
+si_mod$LOO_est
+```
+
+
+#### Revised plan
+
+As is clear from this analysis of the model fit that the linear model (**m1**) is a consistently worse fit to the data than the models that incorporate basis splines for the relationship between nitrogen (N) and biomass (B). This is true for a range of metrics calculated via leave-one-out cross validation.
+
+Originally, we aimed to test whether there was a difference in how natives and invasives respond to nitrogen and microbes. We set-up the model in such a way that the $beta_7$ coefficient provided the critical test of this hypothesis. Specifically:
+
++ If $\beta_7 > 0$, the plant-soil feedback becomes more positive (or less negative) with increasing N in invasives compared to natives.  
++ If $\beta_7 < 0$, the plant-soil feedback becomes more negative with increasing N in invasives compared to natives.
+
+However, given that the relationship between N and B is non-linear, we have revised this hypothesis. Specifically, rather than trying to test whether the plant-soil feedback becomes more positive (i.e. less negative) or more negative (i.e. less positive), we test whether there is a difference in how natives and invasives respond to nitrogen in the presence and absence of microbes.
+
+To do this, we compare two models using a likelihood ratio test (LRT) based on the chi-squared distribution:
+
++ **(1)** The full model with main effects of N, M and P (i.e. native versus invasive), all pairwise interactions and the three-way interaction and where N is modeled using basis-splines (specific splines chosen based on model fit)
+
++ **(2)** A reduced model with main effects of N, M and P (i.e. native versus invasive), all pairwise interactions but without the three-way interaction and where N is modeled using basis-splines (specific splines chosen based on model fit)
+
+If the full model has a significantly higher log-likelihood, we conclude that there is a difference in how natives and invasives respond to nitrogen in the presence and absence of microbes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -72,7 +72,7 @@ Choose one of the species: "Erigeron_canadensis", "Phytolacca_americana", "Solid
 
 ```{r}
 # set the species
-i_species_sel <- "Erigeron_canadensis"
+i_species_sel <- "Phytolacca_americana"
 
 # exclude_high_N
 exclude_high_N <- FALSE
@@ -572,12 +572,6 @@ source(here::here("02-code/03-clean-exp2.R"))
 Choose one of the species: "Erigeron_canadensis", "Phytolacca_americana", "Solidago_gigantea", "Sporobolus_indicus":
 
 ```{r}
-# set the species
-i_species_sel <- "Erigeron_canadensis"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-
 # clean the data
 dat_ex2 <- clean_exp2(data = dat_raw,
                       i_species = i_species_sel,

@@ -1,0 +1,605 @@
+---
+title: "Experiment 1"
+format: html
+editor: source
+---
+
+## Prepare the environment
+
+```{r}
+# load the relevant libraries
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(emmeans)
+
+# load plotting theme
+source(here::here("functions/plot_theme.R"))
+
+# load loo cv function
+source(here::here("functions/compare_models_loocv.R"))
+```
+
+```{r}
+# set location for outputted figures and tables
+figure_table_path <- here::here("03-report/figures-tables")
+```
+
+## Load relevant data
+
+```{r}
+# load the raw data
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"),
+                            guess_max = 1000)
+```
+
+### Clean the data
+
+```{r}
+# load the experiment 1 data cleaning function
+source(here::here("02-code/02-clean-exp1.R"))
+```
+
+Erigeron_canadensis
+Phytolacca_americana
+Solidago_gigantea
+Sporobolus_indicus
+
+```{r}
+# set the species
+i_species_sel <- "Solidago_gigantea"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+```
+
+```{r}
+# clean the data
+dat_ex1_mod <- 
+  clean_exp1(data = dat_raw,
+             i_species = i_species_sel,
+             exclude_high_N = exclude_high_N) |>
+  dplyr::mutate(log_B = log(B),
+                N = N - min(N),
+                P = factor(P),
+                M = factor(M))
+
+# check the data
+head(dat_ex1_mod)
+```
+
+## Data analysis
+
+### Fit the models
+
+```{r}
+# set-up the list of models
+source(here::here("02-code/model_list.R"))
+model_list
+```
+
+```{r}
+# run the cross-validation procedure
+cv_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+
+# check the models
+cv_mod$LOO_est
+
+# get best model
+best_mod <- cv_mod$LOO_est$model[1]
+```
+
+### Likelihood ratio test
+
+```{r}
+# wrap this analysis into a function
+lrt_analysis <- function(model) {
+  
+  # extract full model
+  full_model <- lm(model_list[[model]], data = dat_ex1_mod)
+  
+  # fit the reduced model
+  reduced_model <- 
+    lm(remove_three_way_interaction(model_list[[model]]), 
+       data = dat_ex1_mod)
+  
+  # compare the two models
+  anova_table <- anova(reduced_model, full_model, test = c("Chisq"))
+  
+  return(list(full_model = full_model,
+              reduced_model = reduced_model,
+              anova_table = anova_table))
+  
+}
+
+# run the analysis
+lrt_object <- lrt_analysis(model = best_mod)
+```
+
+
+```{r}
+# function to generate data for plotting
+exp1_plot_prepare <- function(full_model) {
+  
+  # extract model prediction with prediction interval
+  pred_ex1_mod <-
+    tidyr::expand_grid(M = factor(c(0, 1)),
+                      P = factor(c(0, 1)),
+                      N = seq(0, max(dat_ex1_mod$N) + 0.05, 0.05))
+
+  # generate the predictions
+  pred_ex1 <-
+    predict(full_model, 
+            newdata = pred_ex1_mod, interval = "confidence") |> 
+    as.data.frame() |>
+    dplyr::tibble()
+
+  # rename the columns
+  names(pred_ex1) <- c("prediction", "lower", "upper")
+
+  # bind the predictions to the newdata template
+  pred_ex1_mod <- dplyr::bind_cols(pred_ex1_mod, dplyr::tibble(pred_ex1))
+
+  # run the label fixing
+  dat_ex1_plot <- fix_labels(x = dat_ex1_mod)
+  pred_ex1_plot <- fix_labels(x = pred_ex1_mod)
+  
+  list(dat_ex1_plot = dat_ex1_plot,
+       pred_ex1_plot = pred_ex1_plot)
+  
+}
+
+# prepare the data
+exp1_plot_prepare_object <- exp1_plot_prepare(lrt_object$full_model)
+
+## function for plotting
+exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$log_B, x_pred$upper, x_pred$lower)) + c(-0.05, 0.05)
+    } else {
+      y_lims
+    }
+  
+  ggplot() +
+    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(P == P_sel),
+                                 mapping = aes(x = N, y = log_B, colour = M),
+                                 width = 0.05) +
+    geom_line(data = x_pred |> dplyr::filter(P == P_sel),
+              mapping = aes(x = N, y = prediction, colour = M),
+              show.legend = FALSE) +
+    geom_ribbon(data = x_pred |> dplyr::filter(P == P_sel),
+                mapping = aes(x = N, ymin = lower, ymax = upper, fill = M, colour = NULL),
+                alpha = 0.1, show.legend = FALSE) +
+    scale_colour_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
+    scale_fill_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
+    scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
+    scale_y_continuous(limits = y_lim_range) +
+    ylab("ln(Biomass) (g)") +
+    xlab("ln(Nitrogen) (mg)") +
+    ggtitle(paste0(P_sel, " species"))+
+    theme_meta() +
+    theme(legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5))
+  
+}
+
+# create the native species graph
+p_n <- exp1_plot(x_dat = exp1_plot_prepare_object$dat_ex1_plot, 
+                 x_pred = exp1_plot_prepare_object$pred_ex1_plot, 
+                 P_sel = "Native", y_lims = NA)
+  
+# invasive plot
+p_i <- exp1_plot(x_dat = exp1_plot_prepare_object$dat_ex1_plot,
+                 x_pred = exp1_plot_prepare_object$pred_ex1_plot, 
+                 P_sel = "Invasive", y_lims = NA)
+
+# bind the plots using patchwork
+p_n + p_i + 
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+
+```
+
+
+### Effect of microbes on natives and invasives
+
+As an initial contrast, we want to examine the difference in marginal mean biomass with and without microbes averaged over the different values of nitrogen (N) for both natives and invasives. For this, we use the model to compute the contrast:
+
+```{r}
+estm_marginal <- function(full_model) {
+  
+  # extract a range of N-values to marginalise over
+  N_range <- seq(min(dat_ex1_mod$N), max(dat_ex1_mod$N), 0.1)
+  
+  # natives
+
+  # make a reference grid
+  ref_N <- ref_grid(full_model, at = list(P = factor(c(0)),
+                                          N = N_range))
+
+  # get the estimated marginal means
+  estm_N <- emmeans(ref_N, "M")
+
+  # estimate the confidence interval of the difference
+  estm_N <- 
+    contrast(estm_N, method = "pairwise") |> 
+    confint()
+
+  # process the data
+  estm_N <- 
+    estm_N |> 
+    dplyr::as_tibble() |>
+    dplyr::mutate(P = 0)
+
+  # invasives
+  ref_I <- ref_grid(full_model, at = list(P = factor(c(1)),
+                                          N = N_range))
+
+  # get the estimated marginal means
+  estm_I <- emmeans(ref_I, "M")
+
+  # estimate the confidence interval of the difference
+  estm_I <- 
+    contrast(estm_I, method = "pairwise") |> 
+    confint()
+
+  # process the data
+  estm_I <- 
+    estm_I |> 
+    dplyr::as_tibble() |>
+    dplyr::mutate(P = 1)
+
+  # combine the datasets
+  estm <- dplyr::bind_rows(estm_N, estm_I)
+
+  # fix the labels
+  estm <- fix_labels(estm)
+
+  # check the data
+  list(estm = estm)
+  
+}
+
+# run the analysis
+estm_marginal_object <- estm_marginal(lrt_object$full_model)
+
+# check the results
+estm_marginal_object
+```
+
+```{r}
+# function to plot the marginal means
+mm_exp1_plot <- function(x_dat, y_var, x_lims = NA, title) {
+  
+  # extract y_lims
+  x_lim_range <-
+    if (all(is.na(x_lims))) {
+      range(c(x_dat$lower.CL, x_dat$upper.CL)) + c(-0.05, 0.05)
+    } else {
+      x_lims
+    }
+  
+  ggplot() +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey") +
+    geom_point(data = x_dat,
+               mapping = aes(x = estimate, y = forcats::fct_rev(!!sym(y_var)))) +
+    geom_errorbarh(data = x_dat,
+                   mapping = aes(xmin = lower.CL, xmax = upper.CL, y = forcats::fct_rev(!!sym(y_var))),
+                   height = 0, show.legend = FALSE) +
+    xlab(expression("Contrast (No microbes - microbes) (ln(Biomass), mg) (" %+-% " CI"[95]*")")) +
+    ggtitle(title) +
+    scale_x_continuous(limits = x_lim_range) +
+    ylab(NULL) +
+    theme_meta() +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = 0.5, face = "italic"))
+  
+}
+```
+
+
+```{r}
+# plot the contrast
+p_n <- mm_exp1_plot(x_dat = estm_marginal_object$estm, 
+                    y_var = "P",
+                    title = gsub("_", " ", i_species_sel), 
+                    x_lims = NA)
+
+# bind the plots using patchwork
+p_n
+```
+
+
+### Effect of microbes at high and low N on natives and invasives
+
+Based on the nitrogen gradient (4, 8, 16, 32 and 64 mg N), nitrogen values under 32 are considered N-limited and nitrogen values over 64 are considered P-limited. Given this difference, we also estimate the contrast between microbes and no microbes under N-limitation (4, 8, 16 mg N) and under P-limitation (64 mg N) for natives and invasives.
+
+```{r}
+# wrap analysis into a function
+estm_marginal_lim <- function(full_model) {
+  
+  # loop over natives and invasives
+  nat_inv <- c(0, 1)
+
+  nat_inv_lim_list <- list()
+  for (i in seq_along(nat_inv)) {
+  
+    # N limitation
+
+    # make a reference grid
+    ref_N_lim <- ref_grid(full_model, at = list(P = factor(c(nat_inv[i])),
+                                                N = seq(0.00, 1.38, 0.1)))
+
+    # get the estimated marginal means
+    estm_N_lim <- emmeans(ref_N_lim, "M")
+
+    # estimate the confidence interval of the difference
+    estm_N_lim <- 
+      contrast(estm_N_lim, method = "pairwise") |> 
+      confint()
+
+    # process the data
+    estm_N_lim <- 
+      estm_N_lim |> 
+      dplyr::as_tibble() |>
+      dplyr::mutate(P = nat_inv[i],
+                    L = "N limitation")
+
+    # P limitation
+
+    # make a reference grid
+    ref_P_lim <- ref_grid(full_model, at = list(P = factor(c(nat_inv[i])),
+                                                N = seq(2.08, 2.77, 0.1)))
+
+    # get the estimated marginal means
+    estm_P_lim <- emmeans(ref_P_lim, "M")
+
+    # estimate the confidence interval of the difference
+    estm_P_lim <- 
+      contrast(estm_P_lim, method = "pairwise") |> 
+      confint()
+
+    # process the data
+    estm_P_lim <- 
+      estm_P_lim |> 
+      dplyr::as_tibble() |>
+      dplyr::mutate(P = nat_inv[i],
+                    L = "P limitation")
+
+    # combine the datasets
+    estm_lim <- 
+      dplyr::bind_rows(estm_N_lim, estm_P_lim) |>
+      dplyr::mutate(P = ifelse(P == 0, "Native", "Invasive"))
+
+    # check the data
+    nat_inv_lim_list[[i]] <- estm_lim
+    
+    }
+
+  # name the list
+  names(nat_inv_lim_list) <- c("Native", "Invasive")
+
+  nat_inv_lim_list
+  
+}
+
+# run the analysis
+estm_marginal_lim_object <- estm_marginal_lim(lrt_object$full_model)
+
+# check the output
+estm_marginal_lim_object
+
+```
+
+```{r}
+# get x-range
+n_x <- c(estm_marginal_lim_object$Native$lower.CL, estm_marginal_lim_object$Native$upper.CL)
+i_x <- c(estm_marginal_lim_object$Invasive$lower.CL, estm_marginal_lim_object$Invasive$upper.CL)
+x_lims <- range(c(n_x, i_x)) + c(-0.05, 0.05)
+
+# plot the contrast for natives
+p_n <- mm_exp1_plot(x_dat = estm_marginal_lim_object$Native, 
+                    y_var = "L",
+                    title = "Native", 
+                    x_lims = x_lims)
+
+# plot the contrast for invasives
+p_i <- mm_exp1_plot(x_dat = estm_marginal_lim_object$Invasive, 
+                    y_var = "L",
+                    title = "Invasive", 
+                    x_lims = x_lims)
+
+# bind the plots using patchwork
+p_n + p_i + 
+  plot_layout(axes = "collect") +
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+```
+
+### Sensitivity analysis
+
+We used a cross-validation procedure to select the best fitting model to fit to the data which we then used for inference. To make sure that the results are not sensitive to the specific model that was fit, we re-ran the analysis for all five of the models that were fit and examined whether the results changed.
+
+```{r}
+# sort the models from simplest to most complex
+mod_vec <- sort(cv_mod$LOO_est$model)
+```
+
+#### Likelihood ratio test
+
+```{r}
+# apply over each model
+lrt_list <-
+  lapply(mod_vec, function(x) {
+    # run the lrt analysis on each model
+    lrt_analysis(model = x)
+    })
+
+# check the output
+lrt_list[[1]]$full_model
+```
+
+```{r}
+# extract the anova tables
+lrt_tables <- lapply(lrt_list, function(x) x$anova_table)
+
+# get the lrt tables across models
+lrt_tables_list <-
+  lapply(lrt_tables, function(x) {
+    format_lrt_table(table_output = x)
+    })
+
+# bind into a single table
+lrt_tables_df <- 
+  dplyr::bind_cols(dplyr::tibble(model = rep(mod_vec, each = 2)),
+                   dplyr::bind_rows(lrt_tables_list))
+
+# check the output
+lrt_tables_df
+```
+
+#### Marginal effects analysis
+
+Define a plotting function:
+
+```{r}
+# function to plot the marginal means
+mm_exp1_plot_sensitivity <- function(x_dat, y_var, colour_var,
+                                     x_lims = NA, title) {
+  
+  # extract y_lims
+  x_lim_range <-
+    if (all(is.na(x_lims))) {
+      range(c(x_dat$lower.CL, x_dat$upper.CL)) + c(-0.05, 0.05)
+    } else {
+      x_lims
+    }
+  
+  ggplot() +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey") +
+    geom_point(data = x_dat,
+               mapping = aes(x = estimate, y = forcats::fct_rev(!!sym(y_var)),
+                             colour = !!sym(colour_var)),
+               position = position_dodge2(width = 0.5)) +
+    geom_segment(data = x_dat,
+               mapping = aes(x = lower.CL, xend = upper.CL, 
+                             y = forcats::fct_rev(!!sym(y_var)),
+                             colour = !!sym(colour_var)),
+               position = position_dodge2(width = 0.5),
+               show.legend = FALSE)  +
+    xlab(expression("Contrast (No microbes - microbes) (ln(Biomass), mg) (" %+-% " CI"[95]*")")) +
+    scale_colour_viridis_d() +
+    ggtitle(title) +
+    scale_x_continuous(limits = x_lim_range) +
+    ylab(NULL) +
+    theme_meta() +
+    theme(legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "italic"))
+  
+}
+```
+
+
+#### Effect of microbes on natives and invasives
+
+```{r}
+# extract the full models
+full_model_list <- lapply(lrt_list, function(x) x$full_model)
+```
+
+```{r}
+# apply over each model
+estm_marginal_list <-
+  lapply(full_model_list, function(x) {
+    # run the lrt analysis on each model
+    estm_marginal(full_model = x)[[1]]
+    })
+
+# name the list
+names(estm_marginal_list) <- mod_vec
+
+# check the output
+estm_marginal_list
+
+# bind into a data.frame
+estm_marginal_df <- 
+  dplyr::bind_cols(
+    dplyr::tibble(model = rep(mod_vec, each = 2)),
+    dplyr::bind_rows(estm_marginal_list))
+
+# check the data
+head(estm_marginal_df)
+```
+
+```{r}
+# plot the data by model
+mm_exp1_plot_sensitivity(x_dat = estm_marginal_df, 
+                         y_var = "P", 
+                         colour_var = "model",
+                         x_lims = NA, title = gsub("_", " ", i_species_sel))
+
+```
+
+
+#### Effect of microbes at high and low N on natives and invasives
+
+```{r}
+# extract the full models
+full_model_list <- lapply(lrt_list, function(x) x$full_model)
+```
+
+```{r}
+# apply over each model
+estm_marginal_lim_list <-
+  lapply(full_model_list, function(x) {
+    # run the lrt analysis on each model
+    y <- estm_marginal_lim(full_model = x)
+    dplyr::bind_rows(y)
+    })
+
+# name the list
+names(estm_marginal_lim_list) <- mod_vec
+
+# check the output
+estm_marginal_lim_list
+
+# bind into a data.frame
+estm_marginal_df <- 
+  dplyr::bind_cols(
+    dplyr::tibble(model = rep(mod_vec, each = 4)),
+    dplyr::bind_rows(estm_marginal_lim_list))
+
+# check the data
+head(estm_marginal_df)
+```
+
+```{r}
+# get x-range
+x_lims <- range(c(estm_marginal_df$lower.CL, estm_marginal_df$upper.CL)) + c(-0.05, 0.05)
+
+# plot the contrast for natives
+p_n <- 
+  mm_exp1_plot_sensitivity(x_dat = estm_marginal_df |> dplyr::filter(P == "Native"), 
+                           y_var = "L",
+                           colour_var = "model",
+                           title = "Native", 
+                           x_lims = x_lims)
+
+# plot the contrast for invasives
+p_i <- 
+  mm_exp1_plot_sensitivity(x_dat = estm_marginal_df |> dplyr::filter(P == "Invasive"), 
+                           y_var = "L",
+                           colour_var = "model",
+                           title = "Invasive", 
+                           x_lims = x_lims)
+
+# bind the plots using patchwork
+p_n + p_i + 
+  plot_layout(axes = "collect", guides = "collect") +
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+```
+
+
+
