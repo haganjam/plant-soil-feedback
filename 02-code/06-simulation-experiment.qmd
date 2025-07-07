@@ -1,0 +1,228 @@
+---
+title: "Simulation experiment"
+format: html
+editor: source
+---
+
+## Prepare the environment
+
+```{r}
+# load the relevant libraries
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(splines)
+
+# load plotting theme
+source(here::here("functions/plot_theme.R"))
+
+# load the simulate_competition function
+source(here::here("functions/simulate_competition.R"))
+```
+
+```{r}
+# set location for outputted figures and tables
+figure_table_path <- here::here("03-report/figures-tables")
+```
+
+## Load the model object
+
+```{r}
+# set the species
+i_species_sel <- "Solidago_gigantea"
+
+# exclude_high_N
+exclude_high_N <- FALSE
+```
+
+```{r}
+# get the list of model files
+mod_files <- list.files(here::here("02-code/outputs"))
+mod_files <- mod_files[grepl("model", mod_files)]
+
+# load the model
+mod <- readRDS(file.path(here::here("02-code/outputs"),
+                         mod_files[grepl(i_species_sel, mod_files) & grepl(exclude_high_N, mod_files)]))
+
+# check the model
+mod
+```
+
+## Simulation experiment
+
+This needs to be run tomorrow.
+
+```{r}
+# get the potential file name
+sim_file <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+                   "-simulation-output.rds")
+
+# run the simulation if the output is not already present
+if (!(sim_file %in% list.files(here::here("02-code/outputs")))) {
+  
+  # set-up a vector of competition values
+  alpha_vals <- seq(0.1, 0.75, 0.1)
+
+  # replicates per alpha value
+  alpha_vals <- rep(alpha_vals, each = 20)
+
+  # loop the simulation over these alpha_vals
+  sim_out <- vector("list", length = length(alpha_vals))
+  for (i in seq_along(sim_out)) {
+  
+    # print the ith index
+    print(i)
+  
+    # run the simulation
+    x <- 
+      simulate_competition_parallel(
+        N_vals = seq(log(4), log(64), by = 0.15),
+        M_vals = c(0, 1),
+        n_rep = 30,
+        fitted_model = mod,
+        alpha_IN = alpha_vals[i],
+        alpha_NI = alpha_vals[i])
+  
+    # add a competition coefficient value
+    sim_out[[i]] <- 
+      dplyr::bind_cols(dplyr::tibble(alpha_sim_rep = i,
+                                     alpha_sim = alpha_vals[i]),
+                       x)
+}
+
+# save the sim_out object
+saveRDS(object = sim_out,
+        file = file.path(here::here("02-code/outputs"), sim_file))
+  
+} else {
+  
+  sim_out <- readRDS(sim_file)
+  
+}
+
+```
+
+```{r}
+# fit the relevant linear model to each simulated dataset and extract beta7 parameter
+pred_coef <- 
+  lapply(sim_out, function(x) {
+    # fit the linear model
+    lm_x <- lm(log(B) ~ N + M + I + N:M + I:M + I:N + N:M:I, 
+               data = x |> dplyr::mutate(N = N, M = factor(M), I = factor(I)))
+    # extract the coefficients
+    coef_x <- coef(lm_x)[8]
+    # remove the names
+    names(coef_x) <- NULL
+    # return the coefficient
+    coef_x
+})
+```
+
+```{r}
+# check the range
+range(unlist(pred_coef))
+```
+
+```{r}
+# summarise and pivot to the wide format
+c_metric <- 
+  sim_out |>
+  dplyr::bind_rows() |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(B = mean(B)) |>
+  tidyr::pivot_wider(id_cols = c("N", "M"),
+                     names_from = I,
+                     values_from = B)
+
+# rename the variables
+names(c_metric) <- c("N", "M", "BN_alone", "BN_invasive")
+
+# calculate the competition metric
+c_metric <-
+  c_metric |>
+  dplyr::mutate(C = log(BN_alone/BN_invasive))
+
+# plot the results
+ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "No microbes", "Microbes")),
+       mapping = aes(x = N, y = C)) +
+  geom_point() +
+  geom_smooth(method = "lm", colour = "black", size = 0.5, alpha = 0.25) +
+  labs(x = "log(Nitrogen Level)", y = "Competition metric") +
+  facet_wrap(~M) +
+  theme_meta()
+```
+
+```{r}
+# bind into a data.frame
+sim_df <- dplyr::bind_rows(sim_out)
+
+# calculate an interval
+sim_df_sum <-
+  sim_df |>
+  dplyr::mutate(B = log(B/4)) |>
+  dplyr::group_by(N, M, I) |>
+  dplyr::summarise(B_median = median(B),
+                   B_pi_low = quantile(B, 0.75),
+                   B_pi_high = quantile(B, 0.25)) |>
+  dplyr::ungroup()
+
+# fix labels for plotting
+sim_df_sum <- fix_labels(x = sim_df_sum)
+
+## function for plotting
+sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$B_pi_low, x_dat$B_pi_high)) + c(-0.025, 0.025)
+    } else {
+      y_lims
+    }
+  
+  ggplot() +
+  geom_line(data = x_dat |> dplyr::filter(M == M_sel),
+            mapping = aes(x = N, y = B_median, colour = I), 
+            linewidth = 0.75) +
+  geom_ribbon(data = x_dat |> dplyr::filter(M == M_sel),
+              mapping = aes(x = N, ymin = B_pi_low, ymax = B_pi_high, 
+                            fill = I, colour = NULL),
+              alpha = 0.1, show.legend = FALSE) +
+  scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+  scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+  scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
+  scale_y_continuous(limits = y_lim_range) +
+  ylab("Native: ln(Biomass) (g)") +
+  xlab("ln(Nitrogen) (mg)") +
+  ggtitle(paste0(M_sel))+
+  theme_meta() +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+  
+}
+
+# No microbes
+p_nm <- sim_exp_plot(x_dat = sim_df_sum, 
+                     M_sel = "No microbes", 
+                     y_lims = NA,
+                     col1 = "gray60", col2 = "gray0")
+
+
+  
+# invasive plot
+p_m <- sim_exp_plot(x_dat = sim_df_sum, 
+                    M_sel = "Microbes", 
+                    y_lims = NA,
+                    col1 = "lightgreen", col2 = "forestgreen")
+
+# bind the plots using patchwork
+p_nm + p_m + 
+  plot_layout() +
+  plot_annotation(tag_levels = "a")
+```
+
+
+
+
+

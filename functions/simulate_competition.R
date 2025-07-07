@@ -85,9 +85,6 @@ simulate_competition <- function(N_vals,
   # transform N_vals to min zero
   N_vals_t <- N_vals - min(N_vals)
   
-  # extract the model parameters
-  mod_pars <- extract_model_parameters(model = fitted_model)
-  
   # extract the sigma_residual
   sigma_residual <- extract_model_sigma(model = fitted_model)
   
@@ -95,15 +92,18 @@ simulate_competition <- function(N_vals,
   results <- list()
   
   for (N in N_vals_t) {
+    # print(paste0("N = ", N))
     for (M in M_vals) {
+      # print(paste0("M = ", M))
       for (rep in seq_len(n_rep)) {
+        # print(paste0("rep = ", rep))
         
         # model-estimated log-biomass as an estimate of the carrying capacity
-        log_nat <- log_biomass(N, M, 0, model_parameters = mod_pars)
-        log_inv <- log_biomass(N, M, 1, model_parameters = mod_pars)
+        suppressWarnings(log_nat <- predict(fitted_model, newdata = dplyr::tibble(N = N, M = factor(M), P = factor(0))))
+        suppressWarnings(log_inv <- predict(fitted_model, newdata = dplyr::tibble(N = N, M = factor(M), P = factor(1))))
         
         # carrying capacity of native and invasives by back-transforming log-prediction
-        K_N <- exp(log_nat + rnorm(1, 0, sigma_residual))
+        K_N <- 4 * exp(log_nat + rnorm(1, 0, sigma_residual))
         K_I <- exp(log_inv + rnorm(1, 0, sigma_residual))
         
         # denominator
@@ -116,6 +116,10 @@ simulate_competition <- function(N_vals,
         # ensure equilibrium biomass is non-negative
         B_N_star <- max(B_N_star, 0.005)
         B_I_star <- max(B_I_star, 0.005)
+        
+        B_N_star
+        B_I_star
+        
         
         # store the outputs
         results[[length(results) + 1]] <- dplyr::tibble(
@@ -151,3 +155,124 @@ simulate_competition <- function(N_vals,
   results
   
 }
+
+#' Simulate Biomass Under Mutual Competition (Parallelized with Progress)
+#'
+#' Parallelized version of `simulate_competition()` using the future/furrr package.
+#' Includes progress tracking with the progressr package.
+#'
+#' @param N_vals A numeric vector of nitrogen values (e.g., log-transformed).
+#' @param M_vals A numeric vector indicating microbial presence/absence (e.g., 0 = absent, 1 = present).
+#' @param n_rep Integer specifying the number of replicate simulations per condition. Default is 50.
+#' @param fitted_model A fitted model object compatible with `predict()` and custom extractors.
+#' @param alpha_IN Numeric scalar giving the per capita effect of the invasive species on the native. Default is 0.3.
+#' @param alpha_NI Numeric scalar giving the per capita effect of the native species on the invasive. Default is 0.3.
+#'
+#' @return A tibble with columns: N, M, I, replicate, B
+#' @export
+simulate_competition_parallel <- function(N_vals,
+                                          M_vals,
+                                          n_rep = 50,
+                                          fitted_model,
+                                          alpha_IN = 0.3,
+                                          alpha_NI = 0.3) {
+  
+  # Load required packages
+  requireNamespace("furrr", quietly = TRUE)
+  requireNamespace("future", quietly = TRUE)
+  requireNamespace("progressr", quietly = TRUE)
+  requireNamespace("dplyr", quietly = TRUE)
+  requireNamespace("tibble", quietly = TRUE)
+  requireNamespace("purrr", quietly = TRUE)
+  library(splines)
+  
+  # Set up parallel processing (use multicore on Unix/macOS)
+  future::plan(future::multisession, workers = 8)
+  
+  # Transform N values to minimum zero
+  N_vals_t <- N_vals - min(N_vals)
+  
+  # Build simulation grid
+  sim_grid <- expand.grid(
+    N = N_vals_t,
+    M = M_vals,
+    replicate = seq_len(n_rep),
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
+  )
+  
+  # Extract residual standard deviation from model
+  sigma_residual <- extract_model_sigma(fitted_model)
+  
+  # Define simulation for one row
+  simulate_one <- function(N, M, rep, fitted_model, sigma_residual, alpha_IN, alpha_NI) {
+    suppressWarnings(
+      log_nat <- predict(fitted_model, newdata = tibble::tibble(N = N, M = factor(M), P = factor(0)))
+    )
+    suppressWarnings(
+      log_inv <- predict(fitted_model, newdata = tibble::tibble(N = N, M = factor(M), P = factor(1)))
+    )
+    
+    K_N <- 4 * exp(log_nat + rnorm(1, 0, sigma_residual))
+    K_I <- exp(log_inv + rnorm(1, 0, sigma_residual))
+    
+    denom <- 1 - alpha_IN * alpha_NI
+    B_N_star <- max((K_N - alpha_IN * K_I) / denom, 0.005)
+    B_I_star <- max((K_I - alpha_NI * K_N) / denom, 0.005)
+    
+    tibble::tibble(
+      N = c(N, N),
+      M = c(M, M),
+      I = c("0", "1"),
+      replicate = c(rep, rep),
+      B = c(K_N, B_N_star)
+    )
+  }
+  
+  # Append parameters to grid
+  sim_grid <- sim_grid |>
+    dplyr::mutate(
+      fitted_model = list(fitted_model),
+      sigma_residual = sigma_residual,
+      alpha_IN = alpha_IN,
+      alpha_NI = alpha_NI
+    )
+  
+  # Run simulations with progress tracking
+  results <- progressr::with_progress({
+    p <- progressr::progressor()
+    
+    furrr::future_pmap_dfr(
+      .l = sim_grid,
+      .f = ~{
+        p()
+        simulate_one(..1, ..2, ..3, ..4, ..5, ..6, ..7)
+      },
+      .options = furrr::furrr_options(seed = TRUE)
+    )
+  })
+  
+  # Format results
+  results <- results |>
+    dplyr::arrange(N, M, I, replicate) |>
+    dplyr::mutate(
+      M = as.character(M),
+      I = as.character(I)
+    )
+  
+  # Replace non-positive B values
+  min_zero <- min(results$B[results$B > 0])
+  results$B <- ifelse(results$B <= 0, min_zero, results$B)
+  
+  return(results)
+  
+}
+
+
+
+
+
+
+
+
+

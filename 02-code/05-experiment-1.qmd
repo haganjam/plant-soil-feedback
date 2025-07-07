@@ -116,6 +116,16 @@ lrt_analysis <- function(model) {
 lrt_object <- lrt_analysis(model = best_mod)
 ```
 
+We then export this model object for use in the simulation experiment:
+
+```{r}
+# export the full model
+saveRDS(object = lrt_object$full_model,
+        file = file.path(here::here("02-code/outputs"), 
+                         paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+                                "-full-model.rds")))
+```
+
 
 ```{r}
 # function to generate data for plotting
@@ -177,7 +187,7 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
     scale_fill_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
     scale_y_continuous(limits = y_lim_range) +
-    ylab("ln(Biomass) (g)") +
+    ylab("ln(Biomass) (mg)") +
     xlab("ln(Nitrogen) (mg)") +
     ggtitle(paste0(P_sel, " species"))+
     theme_meta() +
