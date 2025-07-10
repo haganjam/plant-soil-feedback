@@ -15,9 +15,6 @@ library(splines)
 
 # load plotting theme
 source(here::here("functions/plot_theme.R"))
-
-# load the simulate_competition function
-source(here::here("functions/simulate_competition.R"))
 ```
 
 ```{r}
@@ -50,7 +47,7 @@ mod
 
 ## Simulation experiment
 
-This needs to be run tomorrow.
+The code below checks if a simulation output has been generated for the specific species and exclude_high_N combination. If the relevant output is not presentThe simulations take around
 
 ```{r}
 # get the potential file name
@@ -60,93 +57,58 @@ sim_file <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
 # run the simulation if the output is not already present
 if (!(sim_file %in% list.files(here::here("02-code/outputs")))) {
   
-  # set-up a vector of competition values
-  alpha_vals <- seq(0.1, 0.75, 0.1)
-
-  # replicates per alpha value
-  alpha_vals <- rep(alpha_vals, each = 20)
-
-  # loop the simulation over these alpha_vals
-  sim_out <- vector("list", length = length(alpha_vals))
-  for (i in seq_along(sim_out)) {
-  
-    # print the ith index
-    print(i)
-  
-    # run the simulation
-    x <- 
-      simulate_competition_parallel(
-        N_vals = seq(log(4), log(64), by = 0.15),
-        M_vals = c(0, 1),
-        n_rep = 30,
-        fitted_model = mod,
-        alpha_IN = alpha_vals[i],
-        alpha_NI = alpha_vals[i])
-  
-    # add a competition coefficient value
-    sim_out[[i]] <- 
-      dplyr::bind_cols(dplyr::tibble(alpha_sim_rep = i,
-                                     alpha_sim = alpha_vals[i]),
-                       x)
-}
-
-# save the sim_out object
-saveRDS(object = sim_out,
-        file = file.path(here::here("02-code/outputs"), sim_file))
-  
+    rstudioapi::jobRunScript(
+      path = here::here("02-code/jobs/run-competition-simulation.R"),
+      name = "competition-simulation",
+      encoding = "unknown",
+      workingDir = NULL,
+      importEnv = TRUE,
+      exportEnv = "")
+    
 } else {
   
-  sim_out <- readRDS(sim_file)
+  message("Simulation has already been performed!")
   
 }
 
+# load the simulated data
+sim_out <- readRDS(file.path(here::here("02-code/outputs"), sim_file))
+
 ```
 
-```{r}
-# fit the relevant linear model to each simulated dataset and extract beta7 parameter
-pred_coef <- 
-  lapply(sim_out, function(x) {
-    # fit the linear model
-    lm_x <- lm(log(B) ~ N + M + I + N:M + I:M + I:N + N:M:I, 
-               data = x |> dplyr::mutate(N = N, M = factor(M), I = factor(I)))
-    # extract the coefficients
-    coef_x <- coef(lm_x)[8]
-    # remove the names
-    names(coef_x) <- NULL
-    # return the coefficient
-    coef_x
-})
-```
-
-```{r}
-# check the range
-range(unlist(pred_coef))
-```
+We now visualise the output of models.
 
 ```{r}
 # summarise and pivot to the wide format
 c_metric <- 
   sim_out |>
   dplyr::bind_rows() |>
-  dplyr::group_by(N, M, I) |>
-  dplyr::summarise(B = mean(B)) |>
-  tidyr::pivot_wider(id_cols = c("N", "M"),
+  tidyr::pivot_wider(id_cols = c("alpha_sim", "alpha_sim_rep", "N", "M", "replicate"),
                      names_from = I,
                      values_from = B)
 
 # rename the variables
-names(c_metric) <- c("N", "M", "BN_alone", "BN_invasive")
+names(c_metric) <- c("alpha_sim", "alpha_sim_rep", "N", "M", "replicate", "BN_alone", "BN_invasive")
 
 # calculate the competition metric
 c_metric <-
   c_metric |>
   dplyr::mutate(C = log(BN_alone/BN_invasive))
 
+# summarise by I and M
+c_metric <-
+  c_metric |>
+  dplyr::group_by(N, M) |>
+  dplyr::summarise(C_m = mean(C),
+                   C_sd = sd(C))
+
 # plot the results
-ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "No microbes", "Microbes")),
-       mapping = aes(x = N, y = C)) +
+ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "a No microbes", "b Microbes")),
+       mapping = aes(x = N, y = C_m)) +
   geom_point() +
-  geom_smooth(method = "lm", colour = "black", size = 0.5, alpha = 0.25) +
+  geom_errorbar(mapping = aes(x = N, ymin = C_m - C_sd, ymax = C_m + C_sd),
+                width = 0) +
+  geom_smooth(colour = "black", size = 0.5, alpha = 0.25) +
   labs(x = "log(Nitrogen Level)", y = "Competition metric") +
   facet_wrap(~M) +
   theme_meta()
@@ -159,15 +121,29 @@ sim_df <- dplyr::bind_rows(sim_out)
 # calculate an interval
 sim_df_sum <-
   sim_df |>
+  dplyr::mutate(sim_id = paste(alpha_sim, "_", alpha_sim_rep, sep = "")) |>
   dplyr::mutate(B = log(B/4)) |>
-  dplyr::group_by(N, M, I) |>
-  dplyr::summarise(B_median = median(B),
-                   B_pi_low = quantile(B, 0.75),
-                   B_pi_high = quantile(B, 0.25)) |>
+  dplyr::group_by(sim_id, N, M, I) |>
+  dplyr::summarise(B_mean = mean(B),
+                   B_low = mean(B) - sd(B),
+                   B_high = mean(B) + sd(B)) |>
   dplyr::ungroup()
 
 # fix labels for plotting
 sim_df_sum <- fix_labels(x = sim_df_sum)
+
+# get the relevant grouping variable
+sim_df_sum$sim_id_treat <- paste(sim_df_sum$sim_id, "_", sim_df_sum$I, sep = "")
+
+# save dataset for plotting
+
+# generate the name
+sim_plot_data <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+                        "-simulation-plot-data.rds")
+
+# export as a .rds file
+saveRDS(object = sim_df_sum,
+        file = file.path(here::here("02-code/outputs"), sim_plot_data))
 
 ## function for plotting
 sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
@@ -175,24 +151,24 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
   # extract y_lims
   y_lim_range <-
     if (all(is.na(y_lims))) {
-      range(c(x_dat$B_pi_low, x_dat$B_pi_high)) + c(-0.025, 0.025)
+      range(c(x_dat$B_low, x_dat$B_high, x_dat$B_mean)) + c(-0.025, 0.025)
     } else {
       y_lims
     }
   
   ggplot() +
   geom_line(data = x_dat |> dplyr::filter(M == M_sel),
-            mapping = aes(x = N, y = B_median, colour = I), 
-            linewidth = 0.75) +
+             mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
+             linewidth = 0.25, alpha = 0.75) +
   geom_ribbon(data = x_dat |> dplyr::filter(M == M_sel),
-              mapping = aes(x = N, ymin = B_pi_low, ymax = B_pi_high, 
-                            fill = I, colour = NULL),
-              alpha = 0.1, show.legend = FALSE) +
+              mapping = aes(x = N, ymin = B_low, ymax = B_high, 
+                            fill = I, colour = NULL, group = sim_id_treat),
+              alpha = 0.05, show.legend = FALSE) +
   scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
-  scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
+  scale_x_continuous() +
   scale_y_continuous(limits = y_lim_range) +
-  ylab("Native: ln(Biomass) (g)") +
+  ylab("Native: ln(Biomass) (mg)") +
   xlab("ln(Nitrogen) (mg)") +
   ggtitle(paste0(M_sel))+
   theme_meta() +
@@ -221,6 +197,9 @@ p_nm + p_m +
   plot_layout() +
   plot_annotation(tag_levels = "a")
 ```
+
+
+
 
 
 

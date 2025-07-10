@@ -831,7 +831,7 @@ p_nm <- exp2_plot(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot,
                   y_lims = NA,
                   col1 = "gray0", col2 = "gray60")
   
-# invasive plot
+# Microbes
 p_m <- exp2_plot(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
                  M_sel = "Microbes", 
                  y_lims = NA,

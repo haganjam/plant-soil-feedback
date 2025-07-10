@@ -15,12 +15,22 @@ remove_three_way_interaction <- function(f) {
   # Remove spline-based three-way interaction: bs(N, ...):M:P
   rhs <- gsub(" *\\+ *bs\\(N, df *= *[0-9]+, degree *= *[0-9]+\\):M:P", "", rhs)
   
+  # Remove spline-based three-way interaction: bs(N, ...):M:I
+  rhs <- gsub(" *\\+ *bs\\(N, df *= *[0-9]+, degree *= *[0-9]+\\):M:I", "", rhs)
+  
   # Remove standard three-way interaction: N:M:P
   rhs <- gsub(" *\\+ *N:M:P", "", rhs)
+  
+  # Remove standard three-way interaction: N:M:I
+  rhs <- gsub(" *\\+ *N:M:I", "", rhs)
   
   # Also handle the edge case where it's the only term (no preceding +)
   rhs <- gsub("^ *N:M:P *\\+? *", "", rhs)  # beginning of RHS
   rhs <- gsub(" *\\+? *N:M:P *$", "", rhs)  # end of RHS
+  
+  # handle the edge cases for the experiment 2
+  rhs <- gsub("^ *N:M:I *\\+? *", "", rhs)  # beginning of RHS
+  rhs <- gsub(" *\\+? *N:M:I *$", "", rhs)  # end of RHS
   
   # Build and return cleaned formula
   as.formula(paste(deparse(formula(f)[[2]]), "~", paste(rhs, collapse = " ")))

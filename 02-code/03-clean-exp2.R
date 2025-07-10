@@ -25,6 +25,9 @@ clean_exp2 <- function(data,
     with(data_clean,
          ifelse(Invasive_species == "All", "none", Invasive_species))
   
+  # remove the status == I
+  data_clean <- dplyr::filter(data_clean, Status != "I")
+  
   # sum-up the native species
   data_clean <-
     data_clean |>
