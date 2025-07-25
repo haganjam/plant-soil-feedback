@@ -53,4 +53,10 @@ rsconnect/
 *.rds
 .rds
 
+01-plan/01-study-design/figures-tables
+data/
+
+
+
+
 
