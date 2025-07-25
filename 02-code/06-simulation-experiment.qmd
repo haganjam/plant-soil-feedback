@@ -7,29 +7,29 @@ editor: source
 ## Prepare the environment
 
 ```{r}
-# load the relevant libraries
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(splines)
-
-# load plotting theme
-source(here::here("functions/plot_theme.R"))
-```
-
-```{r}
-# set location for outputted figures and tables
-figure_table_path <- here::here("03-report/figures-tables")
+# prepare the environmebnt
+source(here::here("functions/prep_exp_env.R"))
 ```
 
 ## Load the model object
 
+Erigeron_canadensis
+Phytolacca_americana
+Solidago_gigantea
+Sporobolus_indicus
+
 ```{r}
-# set the species
-i_species_sel <- "Solidago_gigantea"
+# create the relevant parameters if params not present in environment
+set_default_params(list(
+  invasive_species = "Solidago_gigantea",
+  exclude_highest_N = FALSE
+))
+
+# set the parameters
+i_species_sel <- params$invasive_species
 
 # exclude_high_N
-exclude_high_N <- FALSE
+exclude_high_N <- params$exclude_highest_N
 ```
 
 ```{r}
@@ -47,15 +47,15 @@ mod
 
 ## Simulation experiment
 
-The code below checks if a simulation output has been generated for the specific species and exclude_high_N combination. If the relevant output is not presentThe simulations take around
+The code below checks if a simulation output has been generated for the specific species and exclude_high_N combination. The simulation runs in a separate background R-session (RStudio jobs).
 
 ```{r}
 # get the potential file name
 sim_file <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
-                   "-simulation-output.rds")
+                   "-simulation-output")
 
 # run the simulation if the output is not already present
-if (!(sim_file %in% list.files(here::here("02-code/outputs")))) {
+if (all(grepl(sim_file, list.files(here::here("02-code/outputs"))) == FALSE)) {
   
     rstudioapi::jobRunScript(
       path = here::here("02-code/jobs/run-competition-simulation.R"),
@@ -70,37 +70,81 @@ if (!(sim_file %in% list.files(here::here("02-code/outputs")))) {
   message("Simulation has already been performed!")
   
 }
-
-# load the simulated data
-sim_out <- readRDS(file.path(here::here("02-code/outputs"), sim_file))
-
 ```
 
-We now visualise the output of models.
+Load the simulated data:
 
 ```{r}
+# let the system sleep for 10 seconds to give time for the datasets to be saved
+Sys.sleep(10)
+
+# load the simulated datasets
+sim_files <- list.files(here::here("02-code/outputs"))
+sim_files <- sim_files[grepl(sim_file, sim_files)]
+
+# load the simulation files
+sim_out <- 
+  lapply(sim_files, function(file) {
+    readRDS(file.path(here::here("02-code/outputs"), file))
+  })
+names(sim_out) <- sim_files
+
+# check the data
+head(sim_out[[1]][[1]])
+```
+
+
+We now visualise the output of models. The zero competition is when, in the simulation, the natives "win" and therefore there are no invasives.
+
+```{r}
+# choose a simulation output
+sim_sel <- 1
+
 # summarise and pivot to the wide format
+c_metric <- vector("list", length = length(sim_out[[sim_sel]]))
+for (i in seq_along(c_metric)) {
+  
+  # print the iteration
+  if (i %% 100 == 0) {
+    message("Iteration: ", i)
+  }
+  
+  # pivot each section of the list wider
+  c_metric[[i]] <-
+    sim_out[[sim_sel]][[i]] |>
+    tidyr::pivot_wider(id_cols = c("sim_id", "N", "M"),
+                       names_from = I,
+                       values_from = B_mean)
+  
+}
+
+# bind into a data.frame
 c_metric <- 
-  sim_out |>
-  dplyr::bind_rows() |>
-  tidyr::pivot_wider(id_cols = c("alpha_sim", "alpha_sim_rep", "N", "M", "replicate"),
-                     names_from = I,
-                     values_from = B)
+  c_metric |>
+  dplyr::bind_rows()
+  
+# complete cases
+c_metric <- c_metric[complete.cases(c_metric), ]
 
 # rename the variables
-names(c_metric) <- c("alpha_sim", "alpha_sim_rep", "N", "M", "replicate", "BN_alone", "BN_invasive")
+names(c_metric) <- c("sim_id", "N", "M", "BN_alone", "BN_invasive")
 
 # calculate the competition metric
 c_metric <-
   c_metric |>
   dplyr::mutate(C = log(BN_alone/BN_invasive))
 
+# check the summary statistics
+c_metric |> 
+  summary()
+```
+```{r}
 # summarise by I and M
 c_metric <-
   c_metric |>
   dplyr::group_by(N, M) |>
-  dplyr::summarise(C_m = mean(C),
-                   C_sd = sd(C))
+  dplyr::summarise(C_m = mean(C, na.rm = TRUE),
+                   C_sd = sd(C, na.rm = TRUE))
 
 # plot the results
 ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "a No microbes", "b Microbes")),
@@ -108,32 +152,31 @@ ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "a No microbes", "b M
   geom_point() +
   geom_errorbar(mapping = aes(x = N, ymin = C_m - C_sd, ymax = C_m + C_sd),
                 width = 0) +
-  geom_smooth(colour = "black", size = 0.5, alpha = 0.25) +
   labs(x = "log(Nitrogen Level)", y = "Competition metric") +
   facet_wrap(~M) +
   theme_meta()
 ```
 
+
 ```{r}
 # bind into a data.frame
-sim_df <- dplyr::bind_rows(sim_out)
-
-# calculate an interval
-sim_df_sum <-
-  sim_df |>
-  dplyr::mutate(sim_id = paste(alpha_sim, "_", alpha_sim_rep, sep = "")) |>
-  dplyr::mutate(B = log(B/4)) |>
-  dplyr::group_by(sim_id, N, M, I) |>
-  dplyr::summarise(B_mean = mean(B),
-                   B_low = mean(B) - sd(B),
-                   B_high = mean(B) + sd(B)) |>
-  dplyr::ungroup()
+sim_sel <- 1
+sim_df <- dplyr::bind_rows(sim_out[[sim_sel]])
 
 # fix labels for plotting
-sim_df_sum <- fix_labels(x = sim_df_sum)
+sim_df <- fix_labels(x = sim_df)
+
+# sub-sample the data
+set.seed(323590)
+sim_id_x <- sample(unique(sim_df$sim_id), 100)
+
+# get these 100 lines
+sim_df <-
+  sim_df |>
+  dplyr::filter(sim_id %in% sim_id_x)
 
 # get the relevant grouping variable
-sim_df_sum$sim_id_treat <- paste(sim_df_sum$sim_id, "_", sim_df_sum$I, sep = "")
+sim_df$sim_id_treat <- paste(sim_df$sim_id, "_", sim_df$I, sep = "")
 
 # save dataset for plotting
 
@@ -142,7 +185,7 @@ sim_plot_data <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N)
                         "-simulation-plot-data.rds")
 
 # export as a .rds file
-saveRDS(object = sim_df_sum,
+saveRDS(object = sim_df,
         file = file.path(here::here("02-code/outputs"), sim_plot_data))
 
 ## function for plotting
@@ -151,7 +194,7 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
   # extract y_lims
   y_lim_range <-
     if (all(is.na(y_lims))) {
-      range(c(x_dat$B_low, x_dat$B_high, x_dat$B_mean)) + c(-0.025, 0.025)
+      range(c(x_dat$B_mean)) + c(-0.025, 0.025) # x_dat$B_low, x_dat$B_high, 
     } else {
       y_lims
     }
@@ -159,15 +202,16 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
   ggplot() +
   geom_line(data = x_dat |> dplyr::filter(M == M_sel),
              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
-             linewidth = 0.25, alpha = 0.75) +
-  geom_ribbon(data = x_dat |> dplyr::filter(M == M_sel),
-              mapping = aes(x = N, ymin = B_low, ymax = B_high, 
-                            fill = I, colour = NULL, group = sim_id_treat),
-              alpha = 0.05, show.legend = FALSE) +
+             linewidth = 0.1, alpha = 0.25) +
+  # geom_ribbon(data = x_dat |> dplyr::filter(M == M_sel),
+              # mapping = aes(x = N, ymin = B_low, ymax = B_high, 
+                            # fill = I, colour = NULL, group = sim_id_treat),
+              # alpha = 0.05, show.legend = FALSE) +
   scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
   scale_x_continuous() +
   scale_y_continuous(limits = y_lim_range) +
+  guides(colour = guide_legend(override.aes = list(linewidth = 1))) +
   ylab("Native: ln(Biomass) (mg)") +
   xlab("ln(Nitrogen) (mg)") +
   ggtitle(paste0(M_sel))+
@@ -178,16 +222,16 @@ sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
   
 }
 
+# Randomly sample 100 lines or something
+
 # No microbes
-p_nm <- sim_exp_plot(x_dat = sim_df_sum, 
+p_nm <- sim_exp_plot(x_dat = sim_df, 
                      M_sel = "No microbes", 
                      y_lims = NA,
                      col1 = "gray60", col2 = "gray0")
 
-
-  
 # invasive plot
-p_m <- sim_exp_plot(x_dat = sim_df_sum, 
+p_m <- sim_exp_plot(x_dat = sim_df, 
                     M_sel = "Microbes", 
                     y_lims = NA,
                     col1 = "lightgreen", col2 = "forestgreen")
@@ -195,7 +239,7 @@ p_m <- sim_exp_plot(x_dat = sim_df_sum,
 # bind the plots using patchwork
 p_nm + p_m + 
   plot_layout() +
-  plot_annotation(tag_levels = "a")
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
 ```
 
 

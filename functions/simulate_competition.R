@@ -20,6 +20,8 @@ extract_model_sigma <- function(model) {
 #'        Must be compatible with `extract_model_parameters()` and `extract_model_sigma()`.
 #' @param alpha_IN Numeric scalar giving the per capita effect of the invasive species on the native. Default is 0.3.
 #' @param alpha_NI Numeric scalar giving the per capita effect of the native species on the invasive. Default is 0.3.
+#' @param min_native_biomass Numeric scalar giving the minimum native biomass possible Default is 18 mg
+#' @param solve_simultaneous Logical (TRUE/FALSE) if solve lotka-volterra equation simultaneously
 #'
 #' @return A data frame (tibble) with columns:
 #'   \itemize{
@@ -49,10 +51,12 @@ simulate_competition <- function(N_vals,
                                  n_rep = 50,
                                  fitted_model,
                                  alpha_IN = 0.3,
-                                 alpha_NI = 0.3) {
+                                 alpha_NI = 0.3,
+                                 min_native_biomass = 18,
+                                 solve_simultaneous = TRUE) {
   
   # Normalize nitrogen values
-  N_vals_t <- N_vals - min(N_vals)
+  N_vals_t <- N_vals - log(4)
   
   # Extract residual standard deviation
   sigma_residual <- extract_model_sigma(fitted_model)
@@ -67,30 +71,73 @@ simulate_competition <- function(N_vals,
   # convert M to a factor
   combos$M <- factor(combos$M)
   
-  # Duplicate grid for native and invasive species
+  # duplicate grid for native and invasive species
   combos_native <- combos
   combos_native$P <- factor(0)
   
   combos_invasive <- combos
   combos_invasive$P <- factor(1)
   
-  # Predict log-biomass
+  # predict log-biomass
   log_nat <- suppressWarnings(predict(fitted_model, newdata = combos_native))
   log_inv <- suppressWarnings(predict(fitted_model, newdata = combos_invasive))
   
-  # Add stochastic residuals
-  noise_nat <- rnorm(nrow(combos_native), mean = 0, sd = sigma_residual)
-  noise_inv <- rnorm(nrow(combos_invasive), mean = 0, sd = sigma_residual)
+  # add stochastic residuals
+  noise_add <- rnorm(nrow(combos_native), mean = 0, sd = sigma_residual)
   
-  # Back-transform to get carrying capacities
-  K_N <- 4 * exp(log_nat + noise_nat)
-  K_I <- exp(log_inv + noise_inv)
+  # back-transform to get carrying capacities
+  K_N <- 4 * exp(log_nat + noise_add)
+  K_I <- exp(log_inv + noise_add)
   
-  # Solve equilibrium biomass under Lotka–Volterra competition
-  denom <- 1 - alpha_IN * alpha_NI
-  B_N_star <- pmax((K_N - alpha_IN * K_I) / denom, 0.005)
+  # replicate the competition coefficients so that they can be vectorised
+  alpha_IN <- rep(alpha_IN, length(K_N))
+  alpha_NI <- rep(alpha_NI, length(K_N))
   
-  # Assemble results
+  if (solve_simultaneous) {
+    
+    # outcome categories
+    coexist <- (alpha_IN < K_N / K_I) & (alpha_NI < K_I / K_N)
+    n_wins  <- (K_N / alpha_IN > K_I) & (K_I / alpha_NI < K_N)
+    i_wins  <- (K_N / alpha_IN < K_I) & (K_I / alpha_NI > K_N)
+    unstable <- !(coexist | n_wins | i_wins)
+    
+    # check the outcome combinations
+    stopifnot(sum(coexist) + sum(n_wins) + sum(i_wins) + sum(unstable) == length(K_N))
+    
+    # calculate denominator
+    denom <- (1 - alpha_IN * alpha_NI)
+    
+    # initialize B_N_star
+    B_N_star <- rep(NA_real_, length(K_N))
+    
+    # apply coexistence formula
+    B_N_star[coexist] <- pmax((K_N[coexist] - alpha_IN[coexist] * K_I[coexist]) / denom[coexist], min_native_biomass)
+    
+    # species N wins
+    B_N_star[n_wins] <- K_N[n_wins]
+    
+    # species I wins
+    B_N_star[i_wins] <- min_native_biomass
+    
+    # stochastic resolution for unstable cases (biased toward higher K)
+    if (any(unstable)) {
+      p_N_wins <- K_N[unstable] / (K_N[unstable] + K_I[unstable])
+      rand_draws <- runif(sum(unstable))
+      n_winner <- rand_draws < p_N_wins
+      idx_unstable <- which(unstable)
+      
+      B_N_star[idx_unstable[n_winner]] <- K_N[idx_unstable[n_winner]]
+      B_N_star[idx_unstable[!n_winner]] <- min_native_biomass
+    }
+    
+  } else {
+    
+    # assume simple linear competition without solving simultaneously
+    B_N_star <- K_N - (alpha_NI * K_I)
+    
+  }
+  
+  # assemble results
   baseline <- transform(
     combos_native,
     I = "0",
@@ -110,8 +157,7 @@ simulate_competition <- function(N_vals,
       I <- as.character(I)
     }) |>
     (\(df) {
-      min_nonzero <- min(df$B[df$B > 0])
-      df$B <- ifelse(df$B <= 0, min_nonzero, df$B)
+      df$B <- ifelse(df$B < min_native_biomass, min_native_biomass, df$B)
       df[order(df$N, df$M, df$I, df$replicate), ]
     })()
   
@@ -119,8 +165,8 @@ simulate_competition <- function(N_vals,
   results <- dplyr::as_tibble(results)
   
   return(results)
-  
 }
+
 
 
 

@@ -26,7 +26,7 @@ fix_labels <- function(x) {
   for (i in vars) {
     x[[i]] <-
       if (!is.factor(x[[i]])) {
-        factor(x[[i]])
+        factor(x[[i]], levels = c(0, 1))
       } else {
         x[[i]]
       }

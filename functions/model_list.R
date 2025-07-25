@@ -1,11 +1,21 @@
 
 # set-up the list of models
-model_list <-
+
+# experiment 1
+model_list_exp1 <-
   list(m1 = log_B ~ N + M + P + N:M + N:P + M:P + N:M:P,
        m2 = log_B ~ bs(N, df = 2, degree = 1) + M + P + bs(N, df = 2, degree = 1):M + bs(N, df = 2, degree = 1):P + M:P + bs(N, df = 2, degree = 1):M:P,
        m3 = log_B ~ bs(N, df = 3, degree = 1) + M + P + bs(N, df = 3, degree = 1):M + bs(N, df = 3, degree = 1):P + M:P + bs(N, df = 3, degree = 1):M:P,
        m4 = log_B ~ bs(N, df = 3, degree = 2) + M + P + bs(N, df = 3, degree = 2):M + bs(N, df = 3, degree = 2):P + M:P + bs(N, df = 3, degree = 2):M:P,
        m5 = log_B ~ bs(N, df = 4, degree = 3) + M + P + bs(N, df = 4, degree = 3):M + bs(N, df = 4, degree = 3):P + M:P + bs(N, df = 4, degree = 3):M:P)
+
+# experiment 2
+model_list_exp2 <-
+  list(m1 = log_B ~ N + M + I + N:M + N:I + M:I + N:M:I,
+       m2 = log_B ~ bs(N, df = 2, degree = 1) + M + I + bs(N, df = 2, degree = 1):M + bs(N, df = 2, degree = 1):I + M:I + bs(N, df = 2, degree = 1):M:I,
+       m3 = log_B ~ bs(N, df = 3, degree = 1) + M + I + bs(N, df = 3, degree = 1):M + bs(N, df = 3, degree = 1):I + M:I + bs(N, df = 3, degree = 1):M:I,
+       m4 = log_B ~ bs(N, df = 3, degree = 2) + M + I + bs(N, df = 3, degree = 2):M + bs(N, df = 3, degree = 2):I + M:I + bs(N, df = 3, degree = 2):M:I,
+       m5 = log_B ~ bs(N, df = 4, degree = 3) + M + I + bs(N, df = 4, degree = 3):M + bs(N, df = 4, degree = 3):I + M:I + bs(N, df = 4, degree = 3):M:I)
 
 remove_three_way_interaction <- function(f) {
   

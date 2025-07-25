@@ -7,51 +7,39 @@ editor: source
 ## Prepare the environment
 
 ```{r}
-# load the relevant libraries
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(emmeans)
-
-# load plotting theme
-source(here::here("functions/plot_theme.R"))
-
-# load loo cv function
-source(here::here("functions/compare_models_loocv.R"))
-```
-
-```{r}
-# set location for outputted figures and tables
-figure_table_path <- here::here("03-report/figures-tables")
+# load the prep_env script
+source(here::here("functions/prep_exp_env.R"))
 ```
 
 ## Load relevant data
 
 ```{r}
 # load the raw data
-dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"),
-                            guess_max = 1000)
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"), guess_max = 1000)
+```
+
+Set-up the the focal species if running interactively.
+
++ Erigeron_canadensis
++ Phytolacca_americana
++ Solidago_gigantea
++ Sporobolus_indicus
+
+```{r}
+# create the relevant parameters if params not present in environment
+set_default_params(list(
+  invasive_species = "Sporobolus_indicus",
+  exclude_highest_N = FALSE
+))
+
+# set the parameters
+i_species_sel <- params$invasive_species
+
+# exclude_high_N
+exclude_high_N <- params$exclude_highest_N
 ```
 
 ### Clean the data
-
-```{r}
-# load the experiment 1 data cleaning function
-source(here::here("02-code/02-clean-exp1.R"))
-```
-
-Erigeron_canadensis
-Phytolacca_americana
-Solidago_gigantea
-Sporobolus_indicus
-
-```{r}
-# set the species
-i_species_sel <- "Solidago_gigantea"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-```
 
 ```{r}
 # clean the data
@@ -70,17 +58,40 @@ head(dat_ex1_mod)
 
 ## Data analysis
 
+### Summary table
+
+```{r}
+# generate the summary table
+sum_table <- 
+  dat_ex1_mod |>
+  dplyr::group_by(N, M, P) |>
+  dplyr::summarise(n = dplyr::n(),
+                   Mean = mean(B, na.rm = TRUE),
+                   SD = sd(B, na.rm = TRUE),
+                   Minimum = min(B),
+                   Maximum = max(B)) |>
+  dplyr::mutate(dplyr::across(.cols = c("Mean", "SD", "Minimum", "Maximum"),
+                              ~ round(.x, 1)))
+
+# fix the labels
+sum_table <- 
+  fix_labels(sum_table) |>
+  dplyr::mutate(N = round(exp(N), 0))
+
+# check the table
+sum_table
+
+# export table to a .rds file
+saveRDS(object = sum_table,
+        file = file.path(figure_table_path, 
+                         paste0("summary-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
 ### Fit the models
 
 ```{r}
-# set-up the list of models
-source(here::here("02-code/model_list.R"))
-model_list
-```
-
-```{r}
 # run the cross-validation procedure
-cv_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+cv_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
 # check the models
 cv_mod$LOO_est
@@ -96,11 +107,11 @@ best_mod <- cv_mod$LOO_est$model[1]
 lrt_analysis <- function(model) {
   
   # extract full model
-  full_model <- lm(model_list[[model]], data = dat_ex1_mod)
+  full_model <- lm(model_list_exp1[[model]], data = dat_ex1_mod)
   
   # fit the reduced model
   reduced_model <- 
-    lm(remove_three_way_interaction(model_list[[model]]), 
+    lm(remove_three_way_interaction(model_list_exp1[[model]]), 
        data = dat_ex1_mod)
   
   # compare the two models
@@ -116,16 +127,45 @@ lrt_analysis <- function(model) {
 lrt_object <- lrt_analysis(model = best_mod)
 ```
 
+We then export the likelihood ratio test table:
+
+```{r}
+# format the anova table
+lrt_tbl <- format_lrt_table(table_output = lrt_object$anova_table)
+
+# check the table
+lrt_tbl
+
+# export the table
+saveRDS(object = lrt_tbl,
+        file = file.path(figure_table_path, 
+                         paste0("lrt-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
+
+In addition, for the best model, we export the full regression table.
+
+```{r}
+# full model table
+best_mod_tbl <- broom::tidy(lrt_object$full_model, conf.int = TRUE)
+
+# check the table
+best_mod_tbl
+
+# export the table
+saveRDS(object = best_mod_tbl,
+        file = file.path(figure_table_path, 
+                         paste0("best-mod-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
 We then export this model object for use in the simulation experiment:
 
 ```{r}
 # export the full model
 saveRDS(object = lrt_object$full_model,
         file = file.path(here::here("02-code/outputs"), 
-                         paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
-                                "-full-model.rds")))
+                         paste0(figure_suff(i_species_sel, exclude_high_N), "-full-model.rds")))
 ```
-
 
 ```{r}
 # function to generate data for plotting
@@ -207,12 +247,19 @@ p_i <- exp1_plot(x_dat = exp1_plot_prepare_object$dat_ex1_plot,
                  P_sel = "Invasive", y_lims = NA)
 
 # bind the plots using patchwork
-p_n + p_i + 
+p_n_i <-
+  p_n + p_i + 
   plot_layout(guides = "collect") +
   plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
 
-```
+# print the figure
+p_n_i
 
+# export the figure
+saveRDS(p_n_i,
+        file = file.path(figure_table_path,
+                         paste0("fig-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
 
 ### Effect of microbes on natives and invasives
 
@@ -240,9 +287,8 @@ estm_marginal <- function(full_model) {
 
   # process the data
   estm_N <- 
-    estm_N |> 
-    dplyr::as_tibble() |>
-    dplyr::mutate(P = 0)
+    dplyr::bind_cols(dplyr::tibble(P = rep(0, nrow(estm_N))),
+                     dplyr::as_tibble(estm_N))
 
   # invasives
   ref_I <- ref_grid(full_model, at = list(P = factor(c(1)),
@@ -257,10 +303,9 @@ estm_marginal <- function(full_model) {
     confint()
 
   # process the data
-  estm_I <- 
-    estm_I |> 
-    dplyr::as_tibble() |>
-    dplyr::mutate(P = 1)
+  estm_I <-
+    dplyr::bind_cols(dplyr::tibble(P = rep(1, nrow(estm_I))),
+                     dplyr::as_tibble(estm_I))
 
   # combine the datasets
   estm <- dplyr::bind_rows(estm_N, estm_I)
@@ -310,16 +355,22 @@ mm_exp1_plot <- function(x_dat, y_var, x_lims = NA, title) {
 }
 ```
 
+These contrasts represent the ratio of means with and without microbes. Specifically, if the contrast is 0.4, it means that, averaged across nitrogen values, the biomass of natives is 1.5 (ca. exp(0.4)) times higher without microbes than with microbes.
 
 ```{r}
 # plot the contrast
-p_n <- mm_exp1_plot(x_dat = estm_marginal_object$estm, 
-                    y_var = "P",
-                    title = gsub("_", " ", i_species_sel), 
-                    x_lims = NA)
+p <- mm_exp1_plot(x_dat = estm_marginal_object$estm, 
+                  y_var = "P",
+                  title = gsub("_", " ", i_species_sel), 
+                  x_lims = NA)
 
-# bind the plots using patchwork
-p_n
+# print the graph
+p
+
+# export the figure
+saveRDS(p,
+        file = file.path(figure_table_path,
+                         paste0("fig-exp1-mm1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 
@@ -423,9 +474,18 @@ p_i <- mm_exp1_plot(x_dat = estm_marginal_lim_object$Invasive,
                     x_lims = x_lims)
 
 # bind the plots using patchwork
-p_n + p_i + 
+p_n_i <-
+  p_n + p_i + 
   plot_layout(axes = "collect") +
   plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+
+# print the graph
+p_n_i
+
+# export the figure
+saveRDS(p_n_i,
+        file = file.path(figure_table_path,
+                         paste0("fig-exp1-mm2-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 ### Sensitivity analysis
@@ -468,6 +528,10 @@ lrt_tables_df <-
 
 # check the output
 lrt_tables_df
+
+# export the table
+
+
 ```
 
 #### Marginal effects analysis
@@ -545,11 +609,18 @@ head(estm_marginal_df)
 
 ```{r}
 # plot the data by model
-mm_exp1_plot_sensitivity(x_dat = estm_marginal_df, 
-                         y_var = "P", 
-                         colour_var = "model",
-                         x_lims = NA, title = gsub("_", " ", i_species_sel))
+p <- mm_exp1_plot_sensitivity(x_dat = estm_marginal_df, 
+                              y_var = "P", 
+                              colour_var = "model",
+                              x_lims = NA, title = gsub("_", " ", i_species_sel))
 
+# print the graph
+p
+
+# export the figure
+saveRDS(p,
+        file = file.path(figure_table_path,
+                         paste0("fig-exp1-mm1-sens-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 
@@ -606,10 +677,17 @@ p_i <-
                            x_lims = x_lims)
 
 # bind the plots using patchwork
-p_n + p_i + 
+p_n_i <-
+  p_n + p_i + 
   plot_layout(axes = "collect", guides = "collect") +
   plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+
+# print the graph
+p_n_i
+
+# export the figure
+saveRDS(p_n_i,
+        file = file.path(figure_table_path,
+                         paste0("fig-exp1-mm2-sens-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
-
-
 

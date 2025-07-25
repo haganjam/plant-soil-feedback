@@ -7,23 +7,8 @@ editor: source
 ## Prepare the environment
 
 ```{r}
-# load the relevant libraries
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(emmeans)
-
-# load plotting theme
-source(here::here("functions/plot_theme.R"))
-
-# load loo cv function
-source(here::here("functions/compare_models_loocv.R"))
-```
-
-
-```{r}
-# set location for outputted figures and tables
-figure_table_path <- here::here("03-report/figures-tables")
+# prepare the environmebnt
+source(here::here("functions/prep_exp_env.R"))
 ```
 
 ## Load relevant data
@@ -36,22 +21,23 @@ dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv
 
 ### Clean the data
 
-```{r}
-# load the experiment 1 data cleaning function
-source(here::here("02-code/03-clean-exp2.R"))
-```
-
 Erigeron_canadensis
 Phytolacca_americana
 Solidago_gigantea
 Sporobolus_indicus
 
 ```{r}
-# set the species
-i_species_sel <- "Solidago_gigantea"
+# create the relevant parameters if params not present in environment
+set_default_params(list(
+  invasive_species = "Solidago_gigantea",
+  exclude_highest_N = FALSE
+))
+
+# set the parameters
+i_species_sel <- params$invasive_species
 
 # exclude_high_N
-exclude_high_N <- FALSE
+exclude_high_N <- params$exclude_highest_N
 ```
 
 ```{r}
@@ -70,29 +56,13 @@ head(dat_ex2_mod)
 ```
 
 ```{r}
-# check a few specific comparisons
-dat_ex2_mod |>
-  dplyr::filter(M == 0, N == 0) |>
-  dplyr::select(M, N, I, rep, log_B) |>
-  View()
+# check the model list
+model_list_exp2
 ```
-
-
-```{r}
-# model list
-model_list <-
-  list(m1 = log_B ~ N + M + I + N:M + N:I + M:I + N:M:I,
-       m2 = log_B ~ bs(N, df = 2, degree = 1) + M + I + bs(N, df = 2, degree = 1):M + bs(N, df = 2, degree = 1):I + M:I + bs(N, df = 2, degree = 1):M:I,
-       m3 = log_B ~ bs(N, df = 3, degree = 1) + M + I + bs(N, df = 3, degree = 1):M + bs(N, df = 3, degree = 1):I + M:I + bs(N, df = 3, degree = 1):M:I,
-       m4 = log_B ~ bs(N, df = 3, degree = 2) + M + I + bs(N, df = 3, degree = 2):M + bs(N, df = 3, degree = 2):I + M:I + bs(N, df = 3, degree = 2):M:I,
-       m5 = log_B ~ bs(N, df = 4, degree = 3) + M + I + bs(N, df = 4, degree = 3):M + bs(N, df = 4, degree = 3):I + M:I + bs(N, df = 4, degree = 3):M:I)
-
-```
-
 
 ```{r}
 # run the cross-validation procedure
-cv_mod <- compare_models_loocv(data = dat_ex2_mod, formulas = model_list) 
+cv_mod <- compare_models_loocv(data = dat_ex2_mod, formulas = model_list_exp2) 
 
 # check the models
 cv_mod$LOO_est
@@ -107,11 +77,11 @@ best_mod <- cv_mod$LOO_est$model[1]
 lrt_analysis <- function(model) {
   
   # extract full model
-  full_model <- lm(model_list[[model]], data = dat_ex2_mod)
+  full_model <- lm(model_list_exp2[[model]], data = dat_ex2_mod)
   
   # fit the reduced model
   reduced_model <- 
-    lm(remove_three_way_interaction(model_list[[model]]), 
+    lm(remove_three_way_interaction(model_list_exp2[[model]]), 
        data = dat_ex2_mod)
   
   # compare the two models
@@ -222,22 +192,18 @@ exp2_plot_sim <- function(x_dat, x_pred, x_sim, M_sel, y_lims = NA, col1, col2) 
     }
   
   ggplot() +
+    geom_line(data = x_sim |> dplyr::filter(M == M_sel),
+              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
+              linewidth = 0.25, alpha = 0.15) +
     ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
-                                 mapping = aes(x = N, y = log_B, colour = I),
-                                 width = 0.05) +
+                                 mapping = aes(x = N, y = log_B, fill = I),
+                                 width = 0.05, shape = 21, colour = "white") +
     geom_line(data = x_pred |> dplyr::filter(M == M_sel),
               mapping = aes(x = N, y = prediction, colour = I),
               show.legend = FALSE) +
     geom_ribbon(data = x_pred |> dplyr::filter(M == M_sel),
                 mapping = aes(x = N, ymin = lower, ymax = upper, fill = I, colour = NULL),
                 alpha = 0.1, show.legend = FALSE) +
-    geom_line(data = x_sim |> dplyr::filter(M == M_sel),
-              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
-              linewidth = 0.25, alpha = 0.75) +
-    geom_ribbon(data = x_sim |> dplyr::filter(M == M_sel),
-                mapping = aes(x = N, ymin = B_low, ymax = B_high, 
-                              fill = I, colour = NULL, group = sim_id_treat),
-                alpha = 0.05, show.legend = FALSE) +
     scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
@@ -275,7 +241,7 @@ p_m <- exp2_plot_sim(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot,
 # bind the plots using patchwork
 p_nm + p_m + 
   plot_layout() +
-  plot_annotation(tag_levels = "a")
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
 ```
 
 

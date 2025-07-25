@@ -6,6 +6,13 @@ editor: source
 
 The `01-plan/01-study-design/02-data-simulation.qmd` documents the original analysis plan. In addition, the `02-code/analysis-template.qmd` provides code for how we planned to analyse the data and test our hypotheses. More specifically, in these plans, we had assumed that, on a ln-scale, we could model the relationship between nitrogen ($N$) and total biomass ($B$). However, following data exploration `02-code/01-exploratory-data-analysis.qmd`, it was clear that even on a log-scale, the relationship was not adequately described by a linear model.
 
+## Prepare environment
+
+```{r}
+# load the prep_env script
+source(here::here("functions/prep_exp_env.R"))
+```
+
 ## Testing for non-linearity
 
 To show that the data for both experiment 1 and experiment 2 are better described by non-linear functions, we used cross-validation. Specifically, we fit basis-splines of increasing complexity for the log(N) variable and compared the results using leave-one-out cross-validation. When the fit was better for the non-linear models than for the linear model, we concluded that there was justification for using the non-linear models.
@@ -17,25 +24,6 @@ dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv
 ```
 
 ### Experiment 1
-
-We start by loading the functions that we use to clean the data and the functions we use to compare the models using leave-one-out cross validation:
-
-```{r}
-# load the experiment 1 data cleaning function
-source(here::here("02-code/02-clean-exp1.R"))
-
-# load the compare models via LOO function
-source(here::here("functions/compare_models_loocv.R"))
-```
-
-Next, we set-up the relevant model list:
-
-```{r}
-# set-up the list of models
-source(here::here("02-code/model_list.R"))
-model_list
-```
-
 
 #### Erigeron_canadensis
 
@@ -64,10 +52,19 @@ Fit the different models and compare them using leave-one-out cross-validation. 
 
 ```{r}
 # run the cross-validation procedure
-ec_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+ec_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
-# check the models
-ec_mod$LOO_est
+# extract the table
+ec_mod <- ec_mod$LOO_est
+
+# check the model
+ec_mod$species <- i_species_sel
+
+# reorder the variables
+ec_mod <- dplyr::select(ec_mod, species, model:AIC)
+
+# check the table
+ec_mod
 ```
 
 
@@ -98,10 +95,19 @@ Fit the different models and compare them using leave-one-out cross-validation. 
 
 ```{r}
 # run the cross-validation procedure
-pa_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+pa_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
-# check the models
-pa_mod$LOO_est
+# extract the table
+pa_mod <- pa_mod$LOO_est
+
+# check the model
+pa_mod$species <- i_species_sel
+
+# reorder the variables
+pa_mod <- dplyr::select(pa_mod, species, model:AIC)
+
+# check the table
+pa_mod
 ```
 
 
@@ -132,10 +138,19 @@ Fit the different models and compare them using leave-one-out cross-validation. 
 
 ```{r}
 # run the cross-validation procedure
-sg_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+sg_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
-# check the models
-sg_mod$LOO_est
+# extract the table
+sg_mod <- sg_mod$LOO_est
+
+# check the model
+sg_mod$species <- i_species_sel
+
+# reorder the variables
+sg_mod <- dplyr::select(sg_mod, species, model:AIC)
+
+# check the table
+sg_mod
 ```
 
 
@@ -166,10 +181,33 @@ Fit the different models and compare them using leave-one-out cross-validation. 
 
 ```{r}
 # run the cross-validation procedure
-si_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list) 
+si_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
-# check the models
-si_mod$LOO_est
+# extract the table
+si_mod <- si_mod$LOO_est
+
+# check the model
+si_mod$species <- i_species_sel
+
+# reorder the variables
+si_mod <- dplyr::select(si_mod, species, model:AIC)
+
+# check the table
+si_mod
+```
+
+## Export the model comparison
+
+```{r}
+# bind the different tables together
+cv_table <- dplyr::bind_rows(ec_mod, pa_mod, sg_mod, si_mod)
+```
+
+```{r}
+# save the data
+saveRDS(object = cv_table,
+        file.path(figure_table_path, 
+                  paste0("cv-tbl-exp1", figure_suff("", exclude_high_N), ".rds")))
 ```
 
 

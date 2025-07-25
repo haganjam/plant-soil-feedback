@@ -1,0 +1,7 @@
+project:
+  type: default
+  execute-dir: 02-code/quarto-renders
+  
+params:
+  invasive_species: "Erigeron_canadensis"
+  exclude_highest_N: FALSE

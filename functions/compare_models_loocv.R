@@ -42,6 +42,9 @@ compare_models_loocv <- function(data, formulas) {
   # add the AIC value
   loo_df$AIC <- sapply(model_fits[loo_df$model], AIC)
   
+  # format the table
+  loo_df <- dplyr::select(loo_df, -intercept)
+  
   # Return as a list
   return(list(
     LOO_est = loo_df,
