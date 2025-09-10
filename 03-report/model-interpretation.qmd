@@ -1,0 +1,22 @@
+---
+title: "model-interpretation"
+format: html
+editor: source
+---
+
+**Key reference:** https://www.researchgate.net/profile/Richard-Duncan-2/publication/337123649_Calculating_the_uncertainty_associated_with_log_response_ratios_in_plant-soil_feedback_studies/links/5dd1eda292851c382f46a94d/Calculating-the-uncertainty-associated-with-log-response-ratios-in-plant-soil-feedback-studies.pdf?\_sg%5B0%5D=started_experiment_milestone&\_sg%5B1%5D=started_experiment_milestone&origin=journalDetail&\_rtd=e30%3D
+
+How do we interpret these models in the context of plant-soil feedback? Bates et al. (2019) go through the various methods available to estimate the strength of plant-soil feedback along with the uncertainty in the estimate. In this paper, we use model fitting to do this (paraphrasing):
+
+The method involves using **regression model fitting** to estimate ( \hat{f_2} ) and its associated **standard error**:
+
+To estimate the standard error of $$\hat{f_2}$$, a regression model can be fitted using the log-transformed plant weights as the response variable. The data from both treatments (WT and WS) are combined, and soil treatment is included as a categorical explanatory variable, with treatment T set as the reference class. This approach is equivalent to performing a one-way ANOVA on log-transformed plant weights.
+
+In this model, the parameter of interest is the estimated difference in the mean log-transformed plant weights between treatment S and the reference treatment T:
+
+$$
+\hat{f_2} = \overline{\log(W_T)} - \overline{\log(W_S)}
+$$
+
+The regression output also provides the associated standard error, $$SE_{\hat{f_2}}$$, which can be used to construct confidence intervals for $$f_2$$. When sample sizes are equal across treatments, this method produces the same mean and standard error as analytical formulas (e.g. Eqs. 4 and 5 in the source). However, model fitting has the advantage of producing the correct standard error when sample sizes differ between treatments, making it a more robust approach in unbalanced designs.
+

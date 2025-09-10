@@ -44,7 +44,7 @@ plot(dag1)
 
 ### Generative model description
 
-This DAG can be modelled this as a simple linear model. However, we are interested in the *proportional* changes in plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale where:
+This DAG can be modelled as a simple linear model. However, we are interested in the *proportional* changes in plant biomass. Therefore, we will fit the model on the log-scale. This implies the following generative model on the natural scale where:
 
   $B$ - Biomass (mg)
 

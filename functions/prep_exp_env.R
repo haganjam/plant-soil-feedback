@@ -34,7 +34,7 @@ figure_table_path <- here::here("03-report/figures-tables")
 
 # set the figure suffix
 figure_suff <- function(x, y) {
-  paste0(x, paste0("-exlude_high_N-", y))
+  paste0(x, paste0("-exclude_high_N-", y))
 }
 
 

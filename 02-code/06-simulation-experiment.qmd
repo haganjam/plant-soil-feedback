@@ -93,7 +93,6 @@ names(sim_out) <- sim_files
 head(sim_out[[1]][[1]])
 ```
 
-
 We now visualise the output of models. The zero competition is when, in the simulation, the natives "win" and therefore there are no invasives.
 
 ```{r}

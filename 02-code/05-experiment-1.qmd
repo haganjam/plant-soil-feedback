@@ -2,6 +2,10 @@
 title: "Experiment 1"
 format: html
 editor: source
+
+params:
+  invasive_species: "Erigeron_canadensis"
+  exclude_highest_N: FALSE
 ---
 
 ## Prepare the environment
@@ -27,10 +31,10 @@ Set-up the the focal species if running interactively.
 
 ```{r}
 # create the relevant parameters if params not present in environment
-set_default_params(list(
-  invasive_species = "Sporobolus_indicus",
-  exclude_highest_N = FALSE
-))
+# set_default_params(list(
+  # invasive_species = "Sporobolus_indicus",
+  # exclude_highest_N = FALSE
+# ))
 
 # set the parameters
 i_species_sel <- params$invasive_species
@@ -142,7 +146,6 @@ saveRDS(object = lrt_tbl,
                          paste0("lrt-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
-
 In addition, for the best model, we export the full regression table.
 
 ```{r}
@@ -227,12 +230,13 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
     scale_fill_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
     scale_y_continuous(limits = y_lim_range) +
+    geom_vline(xintercept = 2.8, linetype = "dashed", colour = "darkred", alpha = 0.5) +
     ylab("ln(Biomass) (mg)") +
     xlab("ln(Nitrogen) (mg)") +
     ggtitle(paste0(P_sel, " species"))+
     theme_meta() +
     theme(legend.title = element_blank(),
-          plot.title = element_text(hjust = 0.5))
+          plot.title = element_text(hjust = 0.5, size = 10))
   
 }
 
@@ -250,7 +254,8 @@ p_i <- exp1_plot(x_dat = exp1_plot_prepare_object$dat_ex1_plot,
 p_n_i <-
   p_n + p_i + 
   plot_layout(guides = "collect") +
-  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
+                  theme = theme(plot.title = element_text(size = 11, face = "italic")))
 
 # print the figure
 p_n_i
@@ -350,7 +355,7 @@ mm_exp1_plot <- function(x_dat, y_var, x_lims = NA, title) {
     ylab(NULL) +
     theme_meta() +
     theme(legend.position = "none",
-          plot.title = element_text(hjust = 0.5, face = "italic"))
+          plot.title = element_text(hjust = 0.5, face = "italic", size = 10))
   
 }
 ```
@@ -452,7 +457,6 @@ estm_marginal_lim_object <- estm_marginal_lim(lrt_object$full_model)
 
 # check the output
 estm_marginal_lim_object
-
 ```
 
 ```{r}
@@ -465,19 +469,20 @@ x_lims <- range(c(n_x, i_x)) + c(-0.05, 0.05)
 p_n <- mm_exp1_plot(x_dat = estm_marginal_lim_object$Native, 
                     y_var = "L",
                     title = "Native", 
-                    x_lims = x_lims)
+                    x_lims = x_lims) + theme(plot.title = element_text(face = "plain"))
 
 # plot the contrast for invasives
 p_i <- mm_exp1_plot(x_dat = estm_marginal_lim_object$Invasive, 
                     y_var = "L",
                     title = "Invasive", 
-                    x_lims = x_lims)
+                    x_lims = x_lims) + theme(plot.title = element_text(face = "plain"))
 
 # bind the plots using patchwork
 p_n_i <-
   p_n + p_i + 
   plot_layout(axes = "collect") +
-  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
+                  theme = theme(plot.title = element_text(size = 10, face = "italic")))
 
 # print the graph
 p_n_i
@@ -666,7 +671,8 @@ p_n <-
                            y_var = "L",
                            colour_var = "model",
                            title = "Native", 
-                           x_lims = x_lims)
+                           x_lims = x_lims) +
+  theme(plot.title = element_text(face = "plain"))
 
 # plot the contrast for invasives
 p_i <- 
@@ -674,13 +680,15 @@ p_i <-
                            y_var = "L",
                            colour_var = "model",
                            title = "Invasive", 
-                           x_lims = x_lims)
+                           x_lims = x_lims) +
+  theme(plot.title = element_text(face = "plain"))
 
 # bind the plots using patchwork
 p_n_i <-
   p_n + p_i + 
   plot_layout(axes = "collect", guides = "collect") +
-  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
+                  theme = theme(plot.title = element_text(size = 10, face = "italic")))
 
 # print the graph
 p_n_i

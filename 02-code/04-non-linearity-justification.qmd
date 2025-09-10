@@ -201,6 +201,9 @@ si_mod
 ```{r}
 # bind the different tables together
 cv_table <- dplyr::bind_rows(ec_mod, pa_mod, sg_mod, si_mod)
+
+# arrange by species and then fit
+cv_table <- dplyr::arrange(cv_table, species, RMSE)
 ```
 
 ```{r}
@@ -230,6 +233,9 @@ To do this, we compare two models using a likelihood ratio test (LRT) based on t
 
 If the full model has a significantly higher log-likelihood, we conclude that there is a difference in how natives and invasives respond to nitrogen in the presence and absence of microbes.
 
+
+
+### Make the tables for Experiment 2...
 
 
 

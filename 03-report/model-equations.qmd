@@ -6,9 +6,9 @@ editor: source
 
 ### Model 1
 
-Let \( N \), \( M \), and \( P \) be predictors. Then the full model is:
+Let ( N ), ( M ), and ( P ) be predictors. Then the full model is:
 
-\[
+$$
 \begin{aligned}
 log(B) =\ & \beta_0 
 + \beta_1 N 
@@ -20,17 +20,17 @@ log(B) =\ & \beta_0
 + \beta_7 N \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
-\]
+$$
 
-where \( \varepsilon \sim \mathcal{N}(0, \sigma^2) \).
-
-
+where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
 
 ### Model 2
 
-Let \( f_1(N) \) and \( f_2(N) \) be the two basis functions from the linear spline expansion of \( N \) (i.e., \( \texttt{bs(N, df = 2, degree = 1)} \)). Then the full model is:
+Let ( f_1(N) ) and ( f_2(N) ) be the two basis functions from the linear spline expansion of ( N ) (i.e., ( \texttt{bs(N, df = 2, degree = 1)} )). Then the full model is:
 
 \[
+
+```{=tex}
 \begin{aligned}
 log(B) =\ & \beta_0 
 + \beta_1 f_1(N) 
@@ -46,15 +46,18 @@ log(B) =\ & \beta_0
 + \beta_{11} f_2(N) \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
+```
 \]
 
-where \( \varepsilon \sim \mathcal{N}(0, \sigma^2) \).
+where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
 
 ### Model 3
 
-Let \( f_1(N) \), \( f_2(N) \), and \( f_3(N) \) be the three basis functions from the linear spline expansion of \( N \), i.e., from \( \texttt{bs(N, df = 3, degree = 1)} \). Then the model can be written as:
+Let ( f_1(N) ), ( f_2(N) ), and ( f_3(N) ) be the three basis functions from the linear spline expansion of ( N ), i.e., from ( \texttt{bs(N, df = 3, degree = 1)} ). Then the model can be written as:
 
 \[
+
+```{=tex}
 \begin{aligned}
 log(B) =\ & \beta_0 
 + \beta_1 f_1(N) 
@@ -74,15 +77,18 @@ log(B) =\ & \beta_0
 + \beta_{15} f_3(N) \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
+```
 \]
 
-where \( \varepsilon \sim \mathcal{N}(0, \sigma^2) \).
+where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
 
 ### Model 4
 
-Let \( f_1(N) \), \( f_2(N) \), and \( f_3(N) \) be the three basis functions generated from the quadratic spline expansion of \( N \), i.e., from \( \texttt{bs(N, df = 3, degree = 2)} \). Then the model is:
+Let ( f_1(N) ), ( f_2(N) ), and ( f_3(N) ) be the three basis functions generated from the quadratic spline expansion of ( N ), i.e., from ( \texttt{bs(N, df = 3, degree = 2)} ). Then the model is:
 
 \[
+
+```{=tex}
 \begin{aligned}
 log(B) =\ & \beta_0 
 + \beta_1 f_1(N) 
@@ -102,15 +108,18 @@ log(B) =\ & \beta_0
 + \beta_{15} f_3(N) \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
+```
 \]
 
-where \( \varepsilon \sim \mathcal{N}(0, \sigma^2) \).
+where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
 
 ### Model 5
 
-Let \( f_1(N), f_2(N), f_3(N), f_4(N) \) be the four basis functions from the cubic spline expansion of \( N \), i.e., from \( \texttt{bs(N, df = 4, degree = 3)} \). Then the model is:
+Let ( f_1(N), f_2(N), f_3(N), f_4(N) ) be the four basis functions from the cubic spline expansion of ( N ), i.e., from ( \texttt{bs(N, df = 4, degree = 3)} ). Then the model is:
 
 \[
+
+```{=tex}
 \begin{aligned}
 log(B) =\ & \beta_0 
 + \beta_1 f_1(N) 
@@ -134,11 +143,7 @@ log(B) =\ & \beta_0
 + \beta_{19} f_4(N) \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
+```
 \]
 
-where \( \varepsilon \sim \mathcal{N}(0, \sigma^2) \).
-
-
-
-
-
+where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).

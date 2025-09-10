@@ -1,0 +1,187 @@
+---
+title: "manuscript-elements"
+format: html
+editor: source
+---
+
+```{r}
+# load relevant libraries
+library(ggplot2)
+library(patchwork)
+```
+
+```{r}
+# get a list of files
+files <- list.files("figures-tables/")
+print(files)
+```
+
+```{r}
+# set-up a vector of species names
+sp_names <- c("Erigeron_canadensis", "Phytolacca_americana", "Solidago_gigantea", "Sporobolus_indicus")
+```
+
+```{r}
+# function to extract the relevant output
+get_output_file <- function(prefix, species, exclude_high_N) {
+  paste0(prefix, species, "-exclude_high_N-", exclude_high_N, ".rds")
+}
+```
+
+
+### Table S1
+
+```{r}
+# set-up the relevant prefix
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "summary-tbl-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z, 
+                   file = file.path("publication/", paste0("tbl-s1-", sp_names[i], ".csv")))
+}
+```
+
+
+### Figure 2
+
+```{r}
+# get relevant figure tags
+fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp1-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  p_list[[i]] <- y + plot_annotation(tag_levels = list(fig_tags[[i]]))
+}
+
+# extract the legend
+p_leg <- cowplot::get_legend(p_list[[1]])
+
+# remove the legends
+for (i in seq_along(p_list)) {
+  p_list[[i]] <-
+    p_list[[i]] + 
+    plot_layout(guides = "collect") &
+    theme(legend.position = "none")
+}
+```
+
+```{r}
+# bind using cowplot
+p1 <- cowplot::plot_grid(plotlist = p_list)
+
+# check the plot
+p1
+```
+
+```{r}
+# add a legend using patchwork
+p1 <- p1 + p_leg + plot_layout(widths = c(7, 1))
+
+# check the plot
+p1
+```
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-2.png", p1, dpi = 600,
+       units = c("cm"), width = 22, height = 16)
+```
+
+### Figure 3
+
+```{r}
+# get relevant figure tags
+fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp1-mm2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- y + plot_annotation(tag_levels = list(fig_tags[[i]]))
+  p_list[[i]] <- z & theme(axis.title.x = element_text(size = 8))
+}
+```
+
+```{r}
+# bind using cowplot
+p1 <- cowplot::plot_grid(plotlist = p_list)
+
+# check the plot
+p1
+```
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-3.png", p1, dpi = 600,
+       units = c("cm"), width = 22, height = 16)
+```
+
+### Table 1
+
+```{r}
+# set-up the relevant prefix
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "lrt-tbl-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z, 
+                   file = file.path("publication/", paste0("tbl-1-", sp_names[i], ".csv")))
+}
+```
+
+
+### Figure S2
+
+```{r}
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp1-mm1-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  p_list[[i]] <- y & theme(axis.title.x = element_text(size = 8))
+}
+
+# check the plots
+p_list[[1]]
+```
+
+```{r}
+# bind the plots
+p1 <- 
+  p_list[[1]] + p_list[[2]] + p_list[[3]] + p_list[[4]] +
+  plot_annotation(tag_levels = "a")
+
+# check the plots
+plot(p1)
+```
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-s2.png", p1, dpi = 600,
+       units = c("cm"), width = 19, height = 16)
+```
+
+### Table S2
+
+```{r}
+# set-up the relevant prefix
+x <- readRDS(file.path("figures-tables/", "cv-tbl-exp1-exclude_high_N-FALSE.rds"))
+readr::write_csv(x = x, 
+                 file = file.path("publication/", paste0("tbl-s2.csv")))
+```
+
+
+
+
+
+
+
+
+
