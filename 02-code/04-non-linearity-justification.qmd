@@ -25,194 +25,74 @@ dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv
 
 ### Experiment 1
 
-#### Erigeron_canadensis
+Set-up a vector of species names:
 
 ```{r}
-# set the species
-i_species_sel <- "Erigeron_canadensis"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-
-# clean the data
-dat_ex1_mod <- 
-  clean_exp1(data = dat_raw,
-             i_species = i_species_sel,
-             exclude_high_N = exclude_high_N) |>
-  dplyr::mutate(log_B = log(B),
-                N = N - min(N),
-                P = factor(P),
-                M = factor(M))
-
-# check the data
-head(dat_ex1_mod)
+# vector of species names
+sp_names <- c("Erigeron_canadensis", "Phytolacca_americana", "Solidago_gigantea", "Sporobolus_indicus")
 ```
 
-Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
+Loop over each of the four invasive species by first cleaning the data and then by running the model selection.
 
 ```{r}
-# run the cross-validation procedure
-ec_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
+# loop over each of the four species
+cv_list_exp1 <- list()
+for (i in seq_along(sp_names)) {
+  
+  # set the species
+  i_species_sel <- sp_names[i]
+  
+  # exclude_high_N
+  exclude_high_N <- FALSE
+  
+  # clean the data
+  dat_ex1_mod <- 
+    clean_exp1(data = dat_raw,
+               i_species = i_species_sel,
+               exclude_high_N = exclude_high_N) |>
+    dplyr::mutate(log_B = log(B),
+                  N = N - min(N),
+                  P = factor(P),
+                  M = factor(M))
+  
+  # run the cross-validation procedure
+  x_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
 
-# extract the table
-ec_mod <- ec_mod$LOO_est
+  # extract the table
+  x_mod <- x_mod$LOO_est
 
-# check the model
-ec_mod$species <- i_species_sel
+  # check the model
+  x_mod$species <- i_species_sel
 
-# reorder the variables
-ec_mod <- dplyr::select(ec_mod, species, model:AIC)
-
-# check the table
-ec_mod
+  # reorder the variables
+  x_mod <- dplyr::select(x_mod, species, model:AIC)
+  
+  # add to the list
+  cv_list_exp1[[i]] <- x_mod
+  
+}
 ```
 
-
-#### Phytolacca_americana
-
-```{r}
-# set the species
-i_species_sel <- "Phytolacca_americana"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-
-# clean the data
-dat_ex1_mod <- 
-  clean_exp1(data = dat_raw,
-             i_species = i_species_sel,
-             exclude_high_N = exclude_high_N) |>
-  dplyr::mutate(log_B = log(B),
-                N = N - min(N),
-                P = factor(P),
-                M = factor(M))
-
-# check the data
-head(dat_ex1_mod)
-```
-
-Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
-
-```{r}
-# run the cross-validation procedure
-pa_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
-
-# extract the table
-pa_mod <- pa_mod$LOO_est
-
-# check the model
-pa_mod$species <- i_species_sel
-
-# reorder the variables
-pa_mod <- dplyr::select(pa_mod, species, model:AIC)
-
-# check the table
-pa_mod
-```
-
-
-#### Solidago_gigantea
-
-```{r}
-# set the species
-i_species_sel <- "Solidago_gigantea"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-
-# clean the data
-dat_ex1_mod <- 
-  clean_exp1(data = dat_raw,
-             i_species = i_species_sel,
-             exclude_high_N = exclude_high_N) |>
-  dplyr::mutate(log_B = log(B),
-                N = N - min(N),
-                P = factor(P),
-                M = factor(M))
-
-# check the data
-head(dat_ex1_mod)
-```
-
-Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
-
-```{r}
-# run the cross-validation procedure
-sg_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
-
-# extract the table
-sg_mod <- sg_mod$LOO_est
-
-# check the model
-sg_mod$species <- i_species_sel
-
-# reorder the variables
-sg_mod <- dplyr::select(sg_mod, species, model:AIC)
-
-# check the table
-sg_mod
-```
-
-
-#### Sporobolus_indicus
-
-```{r}
-# set the species
-i_species_sel <- "Sporobolus_indicus"
-
-# exclude_high_N
-exclude_high_N <- FALSE
-
-# clean the data
-dat_ex1_mod <- 
-  clean_exp1(data = dat_raw,
-             i_species = i_species_sel,
-             exclude_high_N = exclude_high_N) |>
-  dplyr::mutate(log_B = log(B),
-                N = N - min(N),
-                P = factor(P),
-                M = factor(M))
-
-# check the data
-head(dat_ex1_mod)
-```
-
-Fit the different models and compare them using leave-one-out cross-validation. From this, it is clear that the linear model is the worst fit to the data and substantially worse than the other models.
-
-```{r}
-# run the cross-validation procedure
-si_mod <- compare_models_loocv(data = dat_ex1_mod, formulas = model_list_exp1) 
-
-# extract the table
-si_mod <- si_mod$LOO_est
-
-# check the model
-si_mod$species <- i_species_sel
-
-# reorder the variables
-si_mod <- dplyr::select(si_mod, species, model:AIC)
-
-# check the table
-si_mod
-```
-
-## Export the model comparison
+Bind the model-selection tables and arrange by species and root mean squared error.
 
 ```{r}
 # bind the different tables together
-cv_table <- dplyr::bind_rows(ec_mod, pa_mod, sg_mod, si_mod)
+cv_table_exp1 <- dplyr::bind_rows(cv_list_exp1)
 
 # arrange by species and then fit
-cv_table <- dplyr::arrange(cv_table, species, RMSE)
+cv_table_exp1 <- dplyr::arrange(cv_table_exp1, species, RMSE)
 ```
+
+Export the table to a .rds file.
 
 ```{r}
 # save the data
-saveRDS(object = cv_table,
+saveRDS(object = cv_table_exp1,
         file.path(figure_table_path, 
                   paste0("cv-tbl-exp1", figure_suff("", exclude_high_N), ".rds")))
 ```
 
+From this analysis, it is clear that the linear model is the worst fit to the data and substantially worse than the other models for all four species.
 
 #### Revised plan
 
@@ -234,11 +114,67 @@ To do this, we compare two models using a likelihood ratio test (LRT) based on t
 If the full model has a significantly higher log-likelihood, we conclude that there is a difference in how natives and invasives respond to nitrogen in the presence and absence of microbes.
 
 
+### Experiment 2
 
-### Make the tables for Experiment 2...
+Loop over each of the four invasive species by first cleaning the data and then by running the model selection.
 
+```{r}
+# loop over each of the four species
+cv_list_exp2 <- list()
+for (i in seq_along(sp_names)) {
+  
+  # set the species
+  i_species_sel <- sp_names[i]
+  
+  # exclude_high_N
+  exclude_high_N <- FALSE
+  
+  # clean the data
+  dat_ex2_mod <- 
+    clean_exp2(data = dat_raw,
+               i_species = i_species_sel,
+               exclude_high_N = exclude_high_N) |>
+    dplyr::mutate(log_B = log(B),
+                  N = N - min(N),
+                  I = factor(I),
+                  M = factor(M))
+  
+  # run the cross-validation procedure
+  x_mod <- compare_models_loocv(data = dat_ex2_mod, formulas = model_list_exp2) 
 
+  # extract the table
+  x_mod <- x_mod$LOO_est
 
+  # check the model
+  x_mod$species <- i_species_sel
+
+  # reorder the variables
+  x_mod <- dplyr::select(x_mod, species, model:AIC)
+  
+  # add to the list
+  cv_list_exp2[[i]] <- x_mod
+  
+}
+```
+
+```{r}
+# bind the different tables together
+cv_table_exp2 <- dplyr::bind_rows(cv_list_exp2)
+
+# arrange by species and then fit
+cv_table_exp2 <- dplyr::arrange(cv_table_exp2, species, RMSE)
+```
+
+Export the table to a .rds file.
+
+```{r}
+# save the data
+saveRDS(object = cv_table_exp2,
+        file.path(figure_table_path, 
+                  paste0("cv-tbl-exp2", figure_suff("", exclude_high_N), ".rds")))
+```
+
+#### Revised plan
 
 
 

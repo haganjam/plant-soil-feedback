@@ -5,15 +5,19 @@ editor: source
 ---
 
 ```{r}
-# load relevant libraries
-library(ggplot2)
-library(patchwork)
+# get a list of files
+files <- list.files("figures-tables/")
 ```
 
 ```{r}
-# get a list of files
-files <- list.files("figures-tables/")
+# check the files
 print(files)
+```
+
+```{r}
+# load relevant libraries
+library(ggplot2)
+library(patchwork)
 ```
 
 ```{r}
@@ -28,6 +32,7 @@ get_output_file <- function(prefix, species, exclude_high_N) {
 }
 ```
 
+## Experiment 1
 
 ### Table S1
 
@@ -35,7 +40,7 @@ get_output_file <- function(prefix, species, exclude_high_N) {
 # set-up the relevant prefix
 tb_list <- list()
 for (i in seq_along(sp_names)) {
-  x <- get_output_file(prefix = "summary-tbl-", species = sp_names[i], exclude_high_N = "FALSE")
+  x <- get_output_file(prefix = "summary-tbl-exp1-", species = sp_names[i], exclude_high_N = "FALSE")
   y <- readRDS(file.path("figures-tables/", x))
   z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
   readr::write_csv(x = z, 
@@ -89,7 +94,7 @@ p1
 ```{r}
 # export the plot
 ggsave(filename = "publication/fig-2.png", p1, dpi = 600,
-       units = c("cm"), width = 22, height = 16)
+       units = c("cm"), width = 22, height = 14)
 ```
 
 ### Figure 3
@@ -119,7 +124,7 @@ p1
 ```{r}
 # export the plot
 ggsave(filename = "publication/fig-3.png", p1, dpi = 600,
-       units = c("cm"), width = 22, height = 16)
+       units = c("cm"), width = 22, height = 14)
 ```
 
 ### Table 1
@@ -128,7 +133,7 @@ ggsave(filename = "publication/fig-3.png", p1, dpi = 600,
 # set-up the relevant prefix
 tb_list <- list()
 for (i in seq_along(sp_names)) {
-  x <- get_output_file(prefix = "lrt-tbl-", species = sp_names[i], exclude_high_N = "FALSE")
+  x <- get_output_file(prefix = "lrt-tbl-exp1-", species = sp_names[i], exclude_high_N = "FALSE")
   y <- readRDS(file.path("figures-tables/", x))
   z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
   readr::write_csv(x = z, 
@@ -178,8 +183,159 @@ readr::write_csv(x = x,
 ```
 
 
+## Experiment 2
+
+### Table S3
+
+```{r}
+# set-up the relevant prefix
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "summary-tbl-exp2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z, 
+                   file = file.path("publication/", paste0("tbl-s3-", sp_names[i], ".csv")))
+}
+```
 
 
+### Figure 4
+
+```{r}
+# get relevant figure tags
+fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  p_list[[i]] <- y + plot_annotation(tag_levels = list(fig_tags[[i]]))
+}
+
+# get the relevant legend
+p_leg <- 
+  p_list[[1]] + plot_layout(guides = "collect") & 
+  theme(legend.position = "bottom",
+        legend.background = element_rect(fill = "white", colour = "white"),
+        legend.box.background = element_rect(fill = "white", colour = "white"))
+
+# extract the legend
+p_leg <- cowplot::get_legend(p_leg)
+
+# remove the legends
+for (i in seq_along(p_list)) {
+  p_list[[i]] <- 
+    p_list[[i]] + 
+    plot_layout(guides = "collect") &
+    theme(legend.position = "none")
+}
+```
+
+```{r}
+# bind using cowplot
+p1 <- cowplot::plot_grid(plotlist = p_list)
+p1 <- cowplot::plot_grid(p1, p_leg, ncol = 1, nrow = 2,
+                         rel_heights = c(2.5, 0.2))
+
+# check the plot
+p1
+```
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-4.png", p1, dpi = 600,
+       units = c("cm"), width = 20, height = 16)
+```
+
+### Figure 5
+
+```{r}
+# get relevant figure tags
+fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp2-mm2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- y + plot_annotation(tag_levels = list(fig_tags[[i]]))
+  p_list[[i]] <- z & theme(axis.title.x = element_text(size = 8))
+}
+```
+
+```{r}
+# bind using cowplot
+p1 <- cowplot::plot_grid(plotlist = p_list)
+
+# check the plot
+p1
+```
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-5.png", p1, dpi = 600,
+       units = c("cm"), width = 22, height = 14)
+```
+
+
+### Table 2
+
+```{r}
+# set-up the relevant prefix
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "lrt-tbl-exp2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z, 
+                   file = file.path("publication/", paste0("tbl-2-", sp_names[i], ".csv")))
+}
+```
+
+
+### Figure S3
+
+```{r}
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-exp2-mm1-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  p_list[[i]] <- y & theme(axis.title.x = element_text(size = 8))
+}
+
+# check the plots
+p_list[[1]]
+```
+
+```{r}
+# bind the plots
+p1 <- 
+  p_list[[1]] + p_list[[2]] + p_list[[3]] + p_list[[4]] +
+  plot_annotation(tag_levels = "a")
+
+# check the plots
+plot(p1)
+```
+
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-s3.png", p1, dpi = 600,
+       units = c("cm"), width = 19, height = 16)
+```
+
+
+### Table S4
+
+```{r}
+# set-up the relevant prefix
+x <- readRDS(file.path("figures-tables/", "cv-tbl-exp2-exclude_high_N-FALSE.rds"))
+readr::write_csv(x = x, 
+                 file = file.path("publication/", paste0("tbl-s4.csv")))
+```
 
 
 

@@ -88,7 +88,7 @@ sum_table
 # export table to a .rds file
 saveRDS(object = sum_table,
         file = file.path(figure_table_path, 
-                         paste0("summary-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+                         paste0("summary-tbl-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 ### Fit the models
@@ -143,7 +143,7 @@ lrt_tbl
 # export the table
 saveRDS(object = lrt_tbl,
         file = file.path(figure_table_path, 
-                         paste0("lrt-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+                         paste0("lrt-tbl-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 In addition, for the best model, we export the full regression table.
@@ -155,10 +155,18 @@ best_mod_tbl <- broom::tidy(lrt_object$full_model, conf.int = TRUE)
 # check the table
 best_mod_tbl
 
+# select the relevant columns
+best_mod_tbl <-
+  dplyr::select(best_mod_tbl,
+                term, estimate, std.error, statistic, p.value)
+
+# rename the columns
+names(best_mod_tbl) <- c("Term", "Estimate", "SE", "t", "P-value")
+
 # export the table
 saveRDS(object = best_mod_tbl,
         file = file.path(figure_table_path, 
-                         paste0("best-mod-tbl-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+                         paste0("best-mod-tbl-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
 We then export this model object for use in the simulation experiment:

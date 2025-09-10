@@ -243,6 +243,79 @@ p_nm + p_m +
 
 
 
+Pasted from the experiment 2 so might need some adaptation:
+
+We now plot the observed data and fitted model over the predictions made via the simulation experiment:
+
+```{r}
+## function for plotting
+exp2_plot_sim <- function(x_dat, x_pred, x_sim, M_sel, y_lims = NA, col1, col2) {
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$log_B, x_pred$upper, x_pred$lower), x_sim$B_low, x_sim$B_high) + c(-0.05, 0.05)
+    } else {
+      y_lims
+    }
+  
+  ggplot() +
+    geom_line(data = x_sim |> dplyr::filter(M == M_sel),
+              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
+              linewidth = 0.25, alpha = 0.15) +
+    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
+                                 mapping = aes(x = N, y = log_B, fill = I),
+                                 width = 0.05, shape = 21, colour = "white") +
+    geom_line(data = x_pred |> dplyr::filter(M == M_sel),
+              mapping = aes(x = N, y = prediction, colour = I),
+              show.legend = FALSE) +
+    geom_ribbon(data = x_pred |> dplyr::filter(M == M_sel),
+                mapping = aes(x = N, ymin = lower, ymax = upper, fill = I, colour = NULL),
+                alpha = 0.1, show.legend = FALSE) +
+    scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+    scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+    scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
+    scale_y_continuous(limits = y_lim_range) +
+    ylab("ln(Biomass) (mg)") +
+    xlab("ln(Nitrogen) (mg)") +
+    ggtitle(paste0(M_sel))+
+    theme_meta() +
+    theme(legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 10),
+          legend.position = "bottom")
+  
+}
+
+# load the simulated data
+dat_sim <-
+  readRDS(file.path(here::here("02-code/outputs"),
+                    paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+                           "-simulation-plot-data.rds")))
+
+# No microbes
+p_nm <- exp2_plot_sim(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
+                      x_sim = dat_sim,
+                      M_sel = "No microbes", 
+                      y_lims = NA,
+                      col1 = "gray60", col2 = "gray0")
+  
+# invasive plot
+p_m <- exp2_plot_sim(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
+                     M_sel = "Microbes", 
+                     x_sim = dat_sim,
+                     y_lims = NA,
+                     col1 = "lightgreen", col2 = "forestgreen")
+
+# bind the plots using patchwork
+p_nm + p_m + 
+  plot_layout() +
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
+                  theme = theme(plot.title = element_text(size = 11, face = "italic")))
+```
+
+
+
+
 
 
 
