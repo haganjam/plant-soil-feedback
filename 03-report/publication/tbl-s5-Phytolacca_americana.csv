@@ -1,0 +1,21 @@
+Species,N,M,I,n,Mean,SD,Minimum,Maximum
+Phytolacca_americana,4,No microbes,Native alone,3,50.6,9.5,39.8,56.6
+Phytolacca_americana,4,No microbes,Native + invasive,3,49.2,12.8,36.2,61.7
+Phytolacca_americana,4,Microbes,Native alone,3,51.9,10.3,40.6,60.6
+Phytolacca_americana,4,Microbes,Native + invasive,3,26.3,13.3,14.3,40.6
+Phytolacca_americana,8,No microbes,Native alone,3,126,54.7,79.4,186.3
+Phytolacca_americana,8,No microbes,Native + invasive,3,82.1,25.3,53,97.3
+Phytolacca_americana,8,Microbes,Native alone,3,127.9,33.1,90.3,152.8
+Phytolacca_americana,8,Microbes,Native + invasive,3,66.4,24.7,43.2,92.4
+Phytolacca_americana,16,No microbes,Native alone,3,308.4,78.2,233.4,389.5
+Phytolacca_americana,16,No microbes,Native + invasive,3,286.6,82.1,193.3,347.9
+Phytolacca_americana,16,Microbes,Native alone,3,292.3,139.7,131.5,383.9
+Phytolacca_americana,16,Microbes,Native + invasive,3,139,58,73.1,182.4
+Phytolacca_americana,32,No microbes,Native alone,3,477.7,135.9,361.3,627.1
+Phytolacca_americana,32,No microbes,Native + invasive,3,421.7,58.9,366,483.4
+Phytolacca_americana,32,Microbes,Native alone,3,300.7,177,114.3,466.6
+Phytolacca_americana,32,Microbes,Native + invasive,3,295.9,95.6,187.2,367
+Phytolacca_americana,64,No microbes,Native alone,3,499.5,123.3,406.9,639.4
+Phytolacca_americana,64,No microbes,Native + invasive,3,441.6,116.4,311,534.6
+Phytolacca_americana,64,Microbes,Native alone,3,375.2,74.6,290.5,431.3
+Phytolacca_americana,64,Microbes,Native + invasive,3,320.4,88,238.7,413.5

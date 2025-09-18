@@ -1,0 +1,21 @@
+Species,N,M,P,n,Mean,SD,Minimum,Maximum
+Sporobolus_indicus,4,No microbes,Native,3,50.6,9.5,39.8,56.6
+Sporobolus_indicus,4,No microbes,Invasive,3,52.3,12.9,42.3,66.8
+Sporobolus_indicus,4,Microbes,Native,3,33.6,14.9,21.7,50.4
+Sporobolus_indicus,4,Microbes,Invasive,3,60.3,49.1,17,113.6
+Sporobolus_indicus,8,No microbes,Native,3,126,54.7,79.4,186.3
+Sporobolus_indicus,8,No microbes,Invasive,3,139.6,72.4,57.4,193.7
+Sporobolus_indicus,8,Microbes,Native,3,93,17.9,78.7,113
+Sporobolus_indicus,8,Microbes,Invasive,3,159,96.8,48.4,227.8
+Sporobolus_indicus,16,No microbes,Native,3,308.4,78.2,233.4,389.5
+Sporobolus_indicus,16,No microbes,Invasive,3,363.4,111.9,290.3,492.3
+Sporobolus_indicus,16,Microbes,Native,3,248.8,65.9,205,324.6
+Sporobolus_indicus,16,Microbes,Invasive,3,254.4,71.8,176.2,317.3
+Sporobolus_indicus,32,No microbes,Native,3,477.7,135.9,361.3,627.1
+Sporobolus_indicus,32,No microbes,Invasive,3,336.7,156.4,162.7,465.6
+Sporobolus_indicus,32,Microbes,Native,3,330,120.1,224.8,460.9
+Sporobolus_indicus,32,Microbes,Invasive,3,397.4,99.5,283.3,465.7
+Sporobolus_indicus,64,No microbes,Native,3,499.5,123.3,406.9,639.4
+Sporobolus_indicus,64,No microbes,Invasive,3,222.7,52.1,165.4,267.3
+Sporobolus_indicus,64,Microbes,Native,3,270.3,138.8,115,382.2
+Sporobolus_indicus,64,Microbes,Invasive,3,326,36.5,284.6,353.7

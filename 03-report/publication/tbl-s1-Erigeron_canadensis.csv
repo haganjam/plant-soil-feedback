@@ -1,0 +1,21 @@
+Species,N,M,P,n,Mean,SD,Minimum,Maximum
+Erigeron_canadensis,4,No microbes,Native,3,50.6,9.5,39.8,56.6
+Erigeron_canadensis,4,No microbes,Invasive,3,88.5,13.5,75.6,102.6
+Erigeron_canadensis,4,Microbes,Native,3,28.9,3.2,25.2,30.9
+Erigeron_canadensis,4,Microbes,Invasive,3,56.6,15.4,47.5,74.4
+Erigeron_canadensis,8,No microbes,Native,3,126,54.7,79.4,186.3
+Erigeron_canadensis,8,No microbes,Invasive,3,277,48.1,224.3,318.6
+Erigeron_canadensis,8,Microbes,Native,3,87.4,30.1,55.8,115.8
+Erigeron_canadensis,8,Microbes,Invasive,3,291.9,126,211.1,437.1
+Erigeron_canadensis,16,No microbes,Native,3,308.4,78.2,233.4,389.5
+Erigeron_canadensis,16,No microbes,Invasive,3,634.8,428.1,145.9,942.6
+Erigeron_canadensis,16,Microbes,Native,3,267.3,52.6,234.9,328
+Erigeron_canadensis,16,Microbes,Invasive,3,477.2,213.1,281.2,704.1
+Erigeron_canadensis,32,No microbes,Native,3,477.7,135.9,361.3,627.1
+Erigeron_canadensis,32,No microbes,Invasive,3,905.3,349.2,671.5,1306.7
+Erigeron_canadensis,32,Microbes,Native,3,313.6,122.8,183.4,427.5
+Erigeron_canadensis,32,Microbes,Invasive,3,1125.2,360.8,738.1,1452.1
+Erigeron_canadensis,64,No microbes,Native,3,499.5,123.3,406.9,639.4
+Erigeron_canadensis,64,No microbes,Invasive,3,615.3,265.2,377.1,901
+Erigeron_canadensis,64,Microbes,Native,3,366.6,32.8,330.2,394
+Erigeron_canadensis,64,Microbes,Invasive,3,656.6,501.9,266,1222.7
