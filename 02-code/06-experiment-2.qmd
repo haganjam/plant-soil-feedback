@@ -153,6 +153,45 @@ saveRDS(object = lrt_tbl,
                          paste0("lrt-tbl-exp2-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
+Output the type III anova table:
+
+```{r}
+# anova table
+aov_tbl <- car::Anova(lrt_object$full_model, type = 3)
+
+# format the table
+aov_tbl <- format_anova_table(table_output = aov_tbl)
+
+# check the table
+aov_tbl
+
+# export the table
+saveRDS(object = aov_tbl,
+        file = file.path(figure_table_path, 
+                         paste0("aov-tbl-exp2-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
+```{r}
+# full model table
+best_mod_tbl <- broom::tidy(lrt_object$full_model, conf.int = TRUE)
+
+# check the table
+best_mod_tbl
+
+# select the relevant columns
+best_mod_tbl <-
+  dplyr::select(best_mod_tbl,
+                term, estimate, std.error, statistic, p.value)
+
+# rename the columns
+names(best_mod_tbl) <- c("Term", "Estimate", "SE", "t", "P-value")
+
+# export the table
+saveRDS(object = best_mod_tbl,
+        file = file.path(figure_table_path, 
+                         paste0("best-mod-tbl-exp2-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
 ```{r}
 # extract model prediction with prediction interval
 pred_ex2_mod <-
@@ -188,6 +227,8 @@ exp2_plot <- function(x_dat, x_pred, M_sel, y_lims = NA, col1, col2) {
     }
   
   ggplot() +
+   geom_rect(aes(xmin = 2.99, xmax = 3.40, ymin = -Inf, ymax = Inf),
+             colour = NA, alpha = 0.15, fill = "darkred") +
    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
                                 mapping = aes(x = N, y = log_B, colour = I),
                                 width = 0.05) +
@@ -197,7 +238,6 @@ exp2_plot <- function(x_dat, x_pred, M_sel, y_lims = NA, col1, col2) {
    geom_ribbon(data = x_pred |> dplyr::filter(M == M_sel),
                mapping = aes(x = N, ymin = lower, ymax = upper, fill = I, colour = NULL),
                alpha = 0.1, show.legend = FALSE) +
-    geom_vline(xintercept = 2.8, linetype = "dashed", colour = "darkred", alpha = 0.5) +
     scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
@@ -375,7 +415,7 @@ estm_marginal_lim <- function(full_model) {
 
     # make a reference grid
     ref_N_lim <- ref_grid(full_model, at = list(M = factor(c(no_M_M[i])),
-                                                N = seq(0.00, 1.38, 0.1)))
+                                                N = seq(0.00, 1.60, 0.1)))
 
     # get the estimated marginal means
     estm_N_lim <- emmeans(ref_N_lim, "I")
@@ -396,7 +436,7 @@ estm_marginal_lim <- function(full_model) {
 
     # make a reference grid
     ref_P_lim <- ref_grid(full_model, at = list(M = factor(c(no_M_M[i])),
-                                                N = seq(2.08, 2.77, 0.1)))
+                                                N = seq(2.01, 2.77, 0.1)))
 
     # get the estimated marginal means
     estm_P_lim <- emmeans(ref_P_lim, "I")

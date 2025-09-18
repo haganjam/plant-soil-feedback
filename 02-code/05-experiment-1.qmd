@@ -146,6 +146,24 @@ saveRDS(object = lrt_tbl,
                          paste0("lrt-tbl-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
 ```
 
+We also export the full type III anova table.
+
+```{r}
+# anova table
+aov_tbl <- car::Anova(lrt_object$full_model, type = 3)
+
+# format the table
+aov_tbl <- format_anova_table(table_output = aov_tbl)
+
+# check the table
+aov_tbl
+
+# export the table
+saveRDS(object = aov_tbl,
+        file = file.path(figure_table_path, 
+                         paste0("aov-tbl-exp1-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
+
 In addition, for the best model, we export the full regression table.
 
 ```{r}
@@ -177,6 +195,8 @@ saveRDS(object = lrt_object$full_model,
         file = file.path(here::here("02-code/outputs"), 
                          paste0(figure_suff(i_species_sel, exclude_high_N), "-full-model.rds")))
 ```
+
+Important note is that the model is fit with data that is translated to the minimum (by substracting log(4)) from the N data. This makes the intercept more easy to interpret.
 
 ```{r}
 # function to generate data for plotting
@@ -225,6 +245,8 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
     }
   
   ggplot() +
+    geom_rect(aes(xmin = 2.99, xmax = 3.40, ymin = -Inf, ymax = Inf),
+              colour = NA, alpha = 0.15, fill = "darkred") +
     ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(P == P_sel),
                                  mapping = aes(x = N, y = log_B, colour = M),
                                  width = 0.05) +
@@ -238,7 +260,6 @@ exp1_plot <- function(x_dat, x_pred, P_sel, y_lims = NA) {
     scale_fill_manual(values = c("Microbes" = "forestgreen", "No microbes" = "gray60")) +
     scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
     scale_y_continuous(limits = y_lim_range) +
-    geom_vline(xintercept = 2.8, linetype = "dashed", colour = "darkred", alpha = 0.5) +
     ylab("ln(Biomass) (mg)") +
     xlab("ln(Nitrogen) (mg)") +
     ggtitle(paste0(P_sel, " species"))+
@@ -389,7 +410,11 @@ saveRDS(p,
 
 ### Effect of microbes at high and low N on natives and invasives
 
-Based on the nitrogen gradient (4, 8, 16, 32 and 64 mg N), nitrogen values under 32 are considered N-limited and nitrogen values over 64 are considered P-limited. Given this difference, we also estimate the contrast between microbes and no microbes under N-limitation (4, 8, 16 mg N) and under P-limitation (64 mg N) for natives and invasives.
+Based on the nitrogen gradient (4, 8, 16, 32 and 64 mg N), nitrogen values under 20 are considered N-limited and nitrogen values over 30 are considered P-limited. Given this difference, we also estimate the contrast between microbes and no microbes under N-limitation (4 - 20 mg N) and under P-limitation (30 - 64 mg N) for natives and invasives.
+
+However, the model was fit on data where the nitrogen data was translated to zero by subtracting log(4). Therefore, we need to take this into account.
+
+So, for N-limitation, we marginalise over: ln(4) to ln(20) which, for the model is: ln(4) - ln(4) to ln(20) - ln(4). Similarly, for the P-limitation, we marginalise over: ln(30) - ln(4) to ln(64) - ln(4).
 
 ```{r}
 # wrap analysis into a function
@@ -405,7 +430,7 @@ estm_marginal_lim <- function(full_model) {
 
     # make a reference grid
     ref_N_lim <- ref_grid(full_model, at = list(P = factor(c(nat_inv[i])),
-                                                N = seq(0.00, 1.38, 0.1)))
+                                                N = seq(0.00, 1.60, 0.1)))
 
     # get the estimated marginal means
     estm_N_lim <- emmeans(ref_N_lim, "M")
@@ -426,7 +451,7 @@ estm_marginal_lim <- function(full_model) {
 
     # make a reference grid
     ref_P_lim <- ref_grid(full_model, at = list(P = factor(c(nat_inv[i])),
-                                                N = seq(2.08, 2.77, 0.1)))
+                                                N = seq(2.01, 2.77, 0.1)))
 
     # get the estimated marginal means
     estm_P_lim <- emmeans(ref_P_lim, "M")

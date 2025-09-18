@@ -11,7 +11,9 @@ species_list <- c("Erigeron_canadensis",
                   "Solidago_gigantea",
                   "Sporobolus_indicus")
 
-# experiment 1 analysis
+## experiment 1 analysis
+
+# loop over each species
 for (sp in species_list) {
   
   # create an output file name
@@ -38,14 +40,16 @@ file_name <- "05-experiment-1_files"
 # remove the created files if present
 if (file_name %in% list.files("02-code")) {
   # delete the file
-  if (file_name %in% list.files()) {
+  if (file_name %in% list.files("02-code")) {
     file_delete(here::here("02-code/quarto-renders", file_name)) 
   }
   # move file
   file_move(file.path("02-code", file_name), here::here("02-code/quarto-renders", file_name))
 }
 
-# experiment 2 analysis
+## experiment 2 analysis
+
+# loop over each species
 for (sp in species_list) {
   
   # create an output file name
@@ -72,7 +76,7 @@ file_name <- "06-experiment-2_files"
 # remove the created files if present
 if (file_name %in% list.files("02-code")) {
   # delete file
-  if (file_name %in% list.files()) {
+  if (file_name %in% list.files("02-code")) {
     file_delete(here::here("02-code/quarto-renders", file_name)) 
   } 
   # move file

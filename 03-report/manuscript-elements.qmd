@@ -183,9 +183,39 @@ readr::write_csv(x = x,
 ```
 
 
+### Table S3
+
+Anova table for the best model:
+
+```{r}
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "aov-tbl-exp1-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z,
+                   file = file.path("publication/", paste0("tbl-s3-", sp_names[i], ".csv")))
+}
+```
+
+
+### Table S4
+
+```{r}
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "best-mod-tbl-exp1-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z,
+                   file = file.path("publication/", paste0("tbl-s4-", sp_names[i], ".csv")))
+}
+```
+
+
 ## Experiment 2
 
-### Table S3
+### Table S5
 
 ```{r}
 # set-up the relevant prefix
@@ -195,7 +225,7 @@ for (i in seq_along(sp_names)) {
   y <- readRDS(file.path("figures-tables/", x))
   z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
   readr::write_csv(x = z, 
-                   file = file.path("publication/", paste0("tbl-s3-", sp_names[i], ".csv")))
+                   file = file.path("publication/", paste0("tbl-s5-", sp_names[i], ".csv")))
 }
 ```
 
@@ -328,14 +358,45 @@ ggsave(filename = "publication/fig-s3.png", p1, dpi = 600,
 ```
 
 
-### Table S4
+### Table S6
 
 ```{r}
 # set-up the relevant prefix
 x <- readRDS(file.path("figures-tables/", "cv-tbl-exp2-exclude_high_N-FALSE.rds"))
 readr::write_csv(x = x, 
-                 file = file.path("publication/", paste0("tbl-s4.csv")))
+                 file = file.path("publication/", paste0("tbl-s6.csv")))
 ```
+
+
+### Table S7
+
+Anova table for experiment 2:
+
+```{r}
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "aov-tbl-exp2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z,
+                   file = file.path("publication/", paste0("tbl-s7-", sp_names[i], ".csv")))
+}
+```
+
+### Table S8
+
+```{r}
+tb_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "best-mod-tbl-exp2-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables", x))
+  z <- dplyr::bind_cols(dplyr::tibble(Species = sp_names[i]), y)
+  readr::write_csv(x = z,
+                   file = file.path("publication/", paste0("tbl-s8-", sp_names[i], ".csv")))
+}
+```
+
+
 
 
 
