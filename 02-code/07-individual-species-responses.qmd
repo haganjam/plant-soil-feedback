@@ -1,0 +1,188 @@
+---
+title: "Individual species responses"
+format: html
+editor: source
+
+params:
+  invasive_species: "Erigeron_canadensis"
+  exclude_highest_N: FALSE
+---
+
+### Prepare the environment
+
+```{r}
+# load the prep_env script
+source(here::here("functions/prep_exp_env.R"))
+```
+
+### Load the relevant data
+
+We start by loading the raw data from the response phase.
+
+```{r}
+# load the raw data
+dat_raw <- readr::read_csv2(here::here("data-raw/all-raw-data-response-phase.csv"), guess_max = 1000)
+```
+
+Set-up the the focal species if running interactively.
+
++ Erigeron_canadensis
++ Phytolacca_americana
++ Solidago_gigantea
++ Sporobolus_indicus
+
+```{r}
+# create the relevant parameters if params not present in environment
+# set_default_params(list(
+  # invasive_species = "Sporobolus_indicus",
+  # exclude_highest_N = FALSE
+# ))
+
+# set the parameters
+i_species_sel <- params$invasive_species
+```
+
+### Clean the data
+
+Next, we run some basic data cleaning which involves subsetting the native species individually so we can examine how they respond to microbes along with recoding some of the variables.
+
+```{r}
+# extract the relevant data
+dat <-
+  dat_raw |>
+  dplyr::filter(Setup_IAN == "N",
+                Invasive_species %in% c("All", i_species_sel))
+
+# calculate total weight
+dat$total_weight <- 
+  with(dat,
+       Shoot_dry_weight + Root_dry_weight)
+  
+# reorder the columns
+dat <-
+  dat |>
+  dplyr::select(Soil_conditioning, Setup_IAN, Nitrogen_level,
+                Repetition_nr, Species, Shoot_dry_weight, Root_dry_weight,
+                total_weight)
+
+# rename the columns
+names(dat) <- c("M", "P", "N", "rep", "species", "B_shoot", "B_root", "B")
+
+# convert the treatment variables to the values to match the data simulation
+dat <-
+  dat |>
+  dplyr::mutate(M = ifelse(M == "C", 0, 1),
+                P = ifelse(P == "N", 0, 1),
+                N = round(log(N), 2))
+
+# sort out the variable types
+dat <-
+  dat |>
+  dplyr::mutate(N = N - min(N),
+                P = factor(P),
+                M = factor(M),
+                log_B = log(B + 1))
+```
+
+
+### Visualise the data
+
+```{r}
+ind_plot <- function(x_dat, x_dat_sum, microbes, y_lims = NA) {
+  
+  species_cols <- c(
+    "Agrostis"   = "#6B8E23",  # muted olive green
+    "Centaurea"  = "#9370DB",  # dusty violet
+    "Plantago"   = "#8F9779",  # soft grey-green
+    "Ranunculus" = "#D8B365"   # muted golden yellow
+    )
+  
+  # extract y_lims
+  y_lim_range <-
+    if (all(is.na(y_lims))) {
+      range(c(x_dat$log_B, x_dat_sum$log_B_m)) + c(-0.05, 0.05)
+      } else {
+        y_lims
+        }
+  
+  # title colour
+  title_colour <-
+    if (microbes == "No microbes") {
+      "gray60"
+      } else {
+        "forestgreen"
+        }
+  
+  ggplot() +
+    geom_rect(mapping = aes(xmin = 2.99, xmax = 3.40, ymin = -Inf, ymax = Inf),
+              colour = NA, alpha = 0.15, fill = "darkred") +
+    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == microbes),
+                                mapping = aes(x = N, y = log_B, colour = species),
+                                width = 0.05) +
+    geom_line(data = x_dat_sum |> dplyr::filter(M == microbes),
+              mapping = aes(x = N, y = log_B_m, colour = species),
+              show.legend = FALSE) +
+    scale_colour_manual(values = species_cols) +
+    scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
+    scale_y_continuous(limits = y_lim_range) +
+    ylab("ln(1 + Biomass) (mg)") +
+    xlab("ln(Nitrogen) (mg)") +
+    ggtitle(paste0(microbes))+
+    theme_meta() +
+    theme(legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 10))
+  
+}
+```
+
+Use the function to create the individual plot:
+
+```{r}
+# sort out the labels
+dat_plot <- fix_labels(x = dat)
+
+# summarise the data
+dat_plot_sum <-
+  dat_plot |>
+  dplyr::group_by(M, P, N, species) |>
+  dplyr::summarise(log_B_m = mean(log_B)) |>
+  dplyr::ungroup()
+
+# get the y_lims
+y_lims <- range(dat_plot$log_B) + c(-0.05, 0.05)
+
+# make the plots
+
+# no microbes
+p_nm <- ind_plot(x_dat = dat_plot, x_dat_sum = dat_plot_sum, 
+                 microbes = "No microbes", y_lims = y_lims)
+
+# microbes
+p_m <- ind_plot(x_dat = dat_plot, x_dat_sum = dat_plot_sum, 
+                microbes = "Microbes", y_lims = y_lims)
+
+# bind the plots using patchwork
+p_nm_m <-
+  p_nm + p_m + 
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
+                  theme = theme(plot.title = element_text(size = 11, face = "italic")))
+
+# check the plot
+p_nm_m
+
+# export the figure
+saveRDS(p_nm_m,
+        file = file.path(figure_table_path,
+                         paste0("fig-ind-response-", figure_suff(i_species_sel, FALSE), ".rds")))
+```
+
+
+
+
+
+
+
+
+
+

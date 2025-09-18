@@ -40,7 +40,7 @@ file_name <- "05-experiment-1_files"
 # remove the created files if present
 if (file_name %in% list.files("02-code")) {
   # delete the file
-  if (file_name %in% list.files("02-code")) {
+  if (file_name %in% list.files("02-code/quarto-renders")) {
     file_delete(here::here("02-code/quarto-renders", file_name)) 
   }
   # move file
@@ -76,13 +76,48 @@ file_name <- "06-experiment-2_files"
 # remove the created files if present
 if (file_name %in% list.files("02-code")) {
   # delete file
-  if (file_name %in% list.files("02-code")) {
+  if (file_name %in% list.files("02-code/quarto-renders")) {
     file_delete(here::here("02-code/quarto-renders", file_name)) 
   } 
   # move file
   file_move(file.path("02-code", file_name), here::here("02-code/quarto-renders", file_name))
 }
 
+## individual species response analysis
+
+# loop over each species
+for (sp in species_list) {
+  
+  # create an output file name
+  output_file <- paste0("report-ind-plot-", sp, ".html")
+  
+  # render the relevant quarto document
+  quarto_render(
+    input = "02-code/07-individual-species-responses.qmd",
+    output_file = output_file,
+    execute_params = list(
+      invasive_species = sp,
+      exclude_highest_N = FALSE
+    )
+  )
+  
+  # move file
+  file_move(output_file, here::here("02-code/quarto-renders", output_file))
+  
+}
+
+# additional files
+file_name <- "07-individual-species-responses_files"
+
+# remove the created files if present
+if (file_name %in% list.files("02-code")) {
+  # delete file
+  if (file_name %in% list.files("02-code/quarto-renders")) {
+    file_delete(here::here("02-code/quarto-renders", file_name)) 
+  } 
+  # move file
+  file_move(file.path("02-code", file_name), here::here("02-code/quarto-renders", file_name))
+}
 
 
 

@@ -205,8 +205,8 @@ exp1_plot_prepare <- function(full_model) {
   # extract model prediction with prediction interval
   pred_ex1_mod <-
     tidyr::expand_grid(M = factor(c(0, 1)),
-                      P = factor(c(0, 1)),
-                      N = seq(0, max(dat_ex1_mod$N) + 0.05, 0.05))
+                       P = factor(c(0, 1)),
+                       N = seq(0, max(dat_ex1_mod$N) + 0.05, 0.05))
 
   # generate the predictions
   pred_ex1 <-
