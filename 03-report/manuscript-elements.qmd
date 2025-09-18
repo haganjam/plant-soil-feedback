@@ -403,7 +403,8 @@ for (i in seq_along(sp_names)) {
 
 ```{r}
 # get relevant figure tags
-fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+fig_tags <- list(letters[1:4], letters[5:8], 
+                 letters[9:12], letters[13:16])
 
 # load the relevant figures for each species
 p_list <- list()
@@ -444,7 +445,7 @@ p1
 ```{r}
 # export the plot
 ggsave(filename = "publication/fig-s4.png", p1, dpi = 600,
-       units = c("cm"), width = 22, height = 14)
+       units = c("cm"), width = 22, height = 26)
 ```
 
 
