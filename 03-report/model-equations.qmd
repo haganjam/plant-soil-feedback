@@ -4,52 +4,68 @@ format: html
 editor: source
 ---
 
+### Basis spline functions:
+
+$$
+\text{bs}(\text{ln}(N); K, p)
+$$
+
+Where:
+
++ $K$ 
+
+
 ### Model 1
 
 Let ( N ), ( M ), and ( P ) be predictors. Then the full model is:
 
 $$
 \begin{aligned}
-log(B) =\ & \beta_0 
-+ \beta_1 N 
+\text{ln}(B) =\ & \beta_0 
++ \beta_1 \text{ln}(N) 
 + \beta_2 M 
 + \beta_3 P 
-+ \beta_4 N \cdot M 
-+ \beta_5 N \cdot P 
++ \beta_4 \text{ln}(N)  \cdot M 
++ \beta_5 \text{ln}(N)  \cdot P 
 + \beta_6 M \cdot P 
-+ \beta_7 N \cdot M \cdot P 
++ \beta_7 \text{ln}(N)  \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
 $$
 
-where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
+where:
+
+$$
+\varepsilon \sim \mathcal{N}(0, \sigma^2)
+$$
 
 ### Model 2
 
-Let ( f_1(N) ) and ( f_2(N) ) be the two basis functions from the linear spline expansion of ( N ) (i.e., ( \texttt{bs(N, df = 2, degree = 1)} )). Then the full model is:
+Let ( $f_1(N)$ ) and ( $f_2(N)$ ) be the two basis functions from the linear spline expansion of ( N ) (i.e., ( \texttt{bs(N, df = 2, degree = 1)} )). Then the full model is:
 
-\[
-
-```{=tex}
+$$
 \begin{aligned}
-log(B) =\ & \beta_0 
-+ \beta_1 f_1(N) 
-+ \beta_2 f_2(N) 
+\text{ln}(B) =\ & \beta_0 
++ \beta_1 f_1(\text{ln}) 
++ \beta_2 f_2(\text{ln}) 
 + \beta_3 M 
 + \beta_4 P \\
-&+ \beta_5 f_1(N) \cdot M 
-+ \beta_6 f_2(N) \cdot M 
-+ \beta_7 f_1(N) \cdot P 
-+ \beta_8 f_2(N) \cdot P \\
+&+ \beta_5 f_1(\text{ln}) \cdot M 
++ \beta_6 f_2(\text{ln}) \cdot M 
++ \beta_7 f_1(\text{ln}) \cdot P 
++ \beta_8 f_2(\text{ln}) \cdot P \\
 &+ \beta_9 M \cdot P 
-+ \beta_{10} f_1(N) \cdot M \cdot P 
-+ \beta_{11} f_2(N) \cdot M \cdot P 
++ \beta_{10} f_1(\text{ln}) \cdot M \cdot P 
++ \beta_{11} f_2(\text{ln}) \cdot M \cdot P 
 + \varepsilon
 \end{aligned}
-```
-\]
+$$
 
-where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
+where:
+
+$$
+\varepsilon \sim \mathcal{N}(0, \sigma^2)
+$$
 
 ### Model 3
 

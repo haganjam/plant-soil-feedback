@@ -30,12 +30,6 @@ Set-up the the focal species if running interactively.
 + Sporobolus_indicus
 
 ```{r}
-# create the relevant parameters if params not present in environment
-# set_default_params(list(
-  # invasive_species = "Sporobolus_indicus",
-  # exclude_highest_N = FALSE
-# ))
-
 # set the parameters
 i_species_sel <- params$invasive_species
 

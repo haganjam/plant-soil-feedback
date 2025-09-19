@@ -2,12 +2,16 @@
 title: "Simulation experiment"
 format: html
 editor: source
+
+params:
+  invasive_species: "Sporobolus_indicus"
+  exclude_highest_N: FALSE
 ---
 
 ## Prepare the environment
 
 ```{r}
-# prepare the environmebnt
+# prepare the environment
 source(here::here("functions/prep_exp_env.R"))
 ```
 
@@ -19,12 +23,6 @@ Solidago_gigantea
 Sporobolus_indicus
 
 ```{r}
-# create the relevant parameters if params not present in environment
-set_default_params(list(
-  invasive_species = "Solidago_gigantea",
-  exclude_highest_N = FALSE
-))
-
 # set the parameters
 i_species_sel <- params$invasive_species
 
@@ -51,7 +49,7 @@ The code below checks if a simulation output has been generated for the specific
 
 ```{r}
 # get the potential file name
-sim_file <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+sim_file <- paste0(i_species_sel, paste0("-exclude_high_N-", exclude_high_N),
                    "-simulation-output")
 
 # run the simulation if the output is not already present
@@ -93,11 +91,13 @@ names(sim_out) <- sim_files
 head(sim_out[[1]][[1]])
 ```
 
-We now visualise the output of models. The zero competition is when, in the simulation, the natives "win" and therefore there are no invasives.
+We can now visualise the output of the simulations. There are two options which are specified by the `sim_sel` object (options are 1 or 2). If `1` is selected, the equations are not solved simultaneously and linear competition between the native and invasive is assumed (i.e. invasive affects native).
+
+If `2` is selected, then the equations are solved simultaneously based on Lotka-Volterra competition equations. For our purposes, this option is used but we added the first option to see if the results were substantially affected but they were not.
 
 ```{r}
 # choose a simulation output
-sim_sel <- 1
+sim_sel <- 2
 
 # summarise and pivot to the wide format
 c_metric <- vector("list", length = length(sim_out[[sim_sel]]))
@@ -137,6 +137,8 @@ c_metric <-
 c_metric |> 
   summary()
 ```
+
+
 ```{r}
 # summarise by I and M
 c_metric <-
@@ -158,8 +160,7 @@ ggplot(data = c_metric |> dplyr::mutate(M = ifelse(M == 0, "a No microbes", "b M
 
 
 ```{r}
-# bind into a data.frame
-sim_sel <- 1
+# bind into a data.frameas
 sim_df <- dplyr::bind_rows(sim_out[[sim_sel]])
 
 # fix labels for plotting
@@ -180,144 +181,96 @@ sim_df$sim_id_treat <- paste(sim_df$sim_id, "_", sim_df$I, sep = "")
 # save dataset for plotting
 
 # generate the name
-sim_plot_data <- paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
+sim_plot_data <- paste0(i_species_sel, paste0("-exclude_high_N-", exclude_high_N),
                         "-simulation-plot-data.rds")
 
 # export as a .rds file
 saveRDS(object = sim_df,
         file = file.path(here::here("02-code/outputs"), sim_plot_data))
+```
 
+We now load the raw data from experiment 2 to overlay on the model predictions.
+
+```{r}
+# load the relevant data for experiment 2
+dat_plot_exp2 <-
+  readRDS(file.path("outputs",
+                    paste0(i_species_sel, paste0("-exclude_high_N-", exclude_high_N),
+                           "-exp2-plot-data.rds")))
+```
+
+Plot the prediction lines.
+
+```{r}
 ## function for plotting
-sim_exp_plot <- function(x_dat, M_sel, y_lims = NA, col1, col2) {
+sim_exp_plot <- function(x_sim, x_dat, M_sel, y_lims = NA, col1, col2) {
   
   # extract y_lims
   y_lim_range <-
     if (all(is.na(y_lims))) {
-      range(c(x_dat$B_mean)) + c(-0.025, 0.025) # x_dat$B_low, x_dat$B_high, 
+      range(c(x_sim$B_mean, x_dat$log_B)) + c(-0.025, 0.025) # x_dat$B_low, x_dat$B_high, 
     } else {
       y_lims
     }
   
   ggplot() +
-  geom_line(data = x_dat |> dplyr::filter(M == M_sel),
-             mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
-             linewidth = 0.1, alpha = 0.25) +
-  # geom_ribbon(data = x_dat |> dplyr::filter(M == M_sel),
-              # mapping = aes(x = N, ymin = B_low, ymax = B_high, 
-                            # fill = I, colour = NULL, group = sim_id_treat),
-              # alpha = 0.05, show.legend = FALSE) +
-  scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
-  scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
-  scale_x_continuous() +
-  scale_y_continuous(limits = y_lim_range) +
-  guides(colour = guide_legend(override.aes = list(linewidth = 1))) +
-  ylab("Native: ln(Biomass) (mg)") +
-  xlab("ln(Nitrogen) (mg)") +
-  ggtitle(paste0(M_sel))+
-  theme_meta() +
-  theme(legend.title = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "bottom")
+    geom_rect(aes(xmin = 2.99, xmax = 3.40, ymin = -Inf, ymax = Inf),
+              colour = NA, alpha = 0.15, fill = "darkred") +
+    geom_line(data = x_sim |> dplyr::filter(M == M_sel),
+              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
+              linewidth = 0.1, alpha = 0.15, show.legend = FALSE) +
+    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
+                                 mapping = aes(x = N, y = log_B, fill = I),
+                                 width = 0.05, shape = 21, colour = "white", size = 2.5) +
+    scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+    scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
+    scale_x_continuous() +
+    scale_y_continuous(limits = y_lim_range) +
+    guides(colour = guide_legend(override.aes = list(linewidth = 1))) +
+    ylab("Native: ln(Biomass) (mg)") +
+    xlab("ln(Nitrogen) (mg)") +
+    ggtitle(paste0(M_sel))+
+    theme_meta() +
+    theme(legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5),
+          legend.position = "bottom")
   
 }
 
 # Randomly sample 100 lines or something
 
 # No microbes
-p_nm <- sim_exp_plot(x_dat = sim_df, 
+p_nm <- sim_exp_plot(x_sim = sim_df, 
+                     x_dat = dat_plot_exp2,
                      M_sel = "No microbes", 
                      y_lims = NA,
                      col1 = "gray60", col2 = "gray0")
 
 # invasive plot
-p_m <- sim_exp_plot(x_dat = sim_df, 
+p_m <- sim_exp_plot(x_sim = sim_df, 
+                    x_dat = dat_plot_exp2, 
                     M_sel = "Microbes", 
                     y_lims = NA,
                     col1 = "lightgreen", col2 = "forestgreen")
 
 # bind the plots using patchwork
-p_nm + p_m + 
-  plot_layout() +
-  plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel))
-```
-
-
-
-Pasted from the experiment 2 so might need some adaptation:
-
-We now plot the observed data and fitted model over the predictions made via the simulation experiment:
-
-```{r}
-## function for plotting
-exp2_plot_sim <- function(x_dat, x_pred, x_sim, M_sel, y_lims = NA, col1, col2) {
-  
-  # extract y_lims
-  y_lim_range <-
-    if (all(is.na(y_lims))) {
-      range(c(x_dat$log_B, x_pred$upper, x_pred$lower), x_sim$B_low, x_sim$B_high) + c(-0.05, 0.05)
-    } else {
-      y_lims
-    }
-  
-  ggplot() +
-    geom_line(data = x_sim |> dplyr::filter(M == M_sel),
-              mapping = aes(x = N, y = B_mean, colour = I, group = sim_id_treat), 
-              linewidth = 0.25, alpha = 0.15) +
-    ggbeeswarm::geom_quasirandom(data = x_dat |> dplyr::filter(M == M_sel),
-                                 mapping = aes(x = N, y = log_B, fill = I),
-                                 width = 0.05, shape = 21, colour = "white") +
-    geom_line(data = x_pred |> dplyr::filter(M == M_sel),
-              mapping = aes(x = N, y = prediction, colour = I),
-              show.legend = FALSE) +
-    geom_ribbon(data = x_pred |> dplyr::filter(M == M_sel),
-                mapping = aes(x = N, ymin = lower, ymax = upper, fill = I, colour = NULL),
-                alpha = 0.1, show.legend = FALSE) +
-    scale_colour_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
-    scale_fill_manual(values = c("Native alone" = col1, "Native + invasive" = col2)) +
-    scale_x_continuous(breaks = round(unique(x_dat[["N"]]), 1)) +
-    scale_y_continuous(limits = y_lim_range) +
-    ylab("ln(Biomass) (mg)") +
-    xlab("ln(Nitrogen) (mg)") +
-    ggtitle(paste0(M_sel))+
-    theme_meta() +
-    theme(legend.title = element_blank(),
-          plot.title = element_text(hjust = 0.5, size = 10),
-          legend.position = "bottom")
-  
-}
-
-# load the simulated data
-dat_sim <-
-  readRDS(file.path(here::here("02-code/outputs"),
-                    paste0(i_species_sel, paste0("-exlude_high_N-", exclude_high_N),
-                           "-simulation-plot-data.rds")))
-
-# No microbes
-p_nm <- exp2_plot_sim(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
-                      x_sim = dat_sim,
-                      M_sel = "No microbes", 
-                      y_lims = NA,
-                      col1 = "gray60", col2 = "gray0")
-  
-# invasive plot
-p_m <- exp2_plot_sim(x_dat = dat_ex2_plot, x_pred = pred_ex2_plot, 
-                     M_sel = "Microbes", 
-                     x_sim = dat_sim,
-                     y_lims = NA,
-                     col1 = "lightgreen", col2 = "forestgreen")
-
-# bind the plots using patchwork
-p_nm + p_m + 
+p_nm_m <- 
+  p_nm + p_m + 
   plot_layout() +
   plot_annotation(tag_levels = "a", title = gsub("_", " ", i_species_sel),
                   theme = theme(plot.title = element_text(size = 11, face = "italic")))
+
+# check the plot
+p_nm_m
 ```
 
+Export the figure:
 
-
-
-
-
-
+```{r}
+# export the figure
+saveRDS(p_nm_m,
+        file = file.path(figure_table_path,
+                         paste0("fig-simulation-", figure_suff(i_species_sel, exclude_high_N), ".rds")))
+```
 
 

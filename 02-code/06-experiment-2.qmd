@@ -4,7 +4,7 @@ format: html
 editor: source
 
 params:
-  invasive_species: "Erigeron_canadensis"
+  invasive_species: "Solidago_gigantea"
   exclude_highest_N: FALSE
 ---
 
@@ -31,12 +31,6 @@ Solidago_gigantea
 Sporobolus_indicus
 
 ```{r}
-# create the relevant parameters if params not present in environment
-# set_default_params(list(
-  # invasive_species = "Solidago_gigantea",
-  # exclude_highest_N = FALSE
-# ))
-
 # set the parameters
 i_species_sel <- params$invasive_species
 
@@ -214,6 +208,12 @@ pred_ex2_mod <- dplyr::bind_cols(pred_ex2_mod, dplyr::tibble(pred_ex2))
 # run the label fixing
 dat_ex2_plot <- fix_labels(x = dat_ex2_mod)
 pred_ex2_plot <- fix_labels(x = pred_ex2_mod)
+
+# export the dat_ex2_plot object for use in the simulation experiment
+plot_dat_name <- paste0(i_species_sel, paste0("-exclude_high_N-", exclude_high_N),
+                        "-exp2-plot-data.rds")
+saveRDS(object = dat_ex2_plot,
+        file = file.path("outputs", plot_dat_name))
 
 ## function for plotting
 exp2_plot <- function(x_dat, x_pred, M_sel, y_lims = NA, col1, col2) {

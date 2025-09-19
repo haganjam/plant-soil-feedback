@@ -2,27 +2,35 @@
 # prepare experiment environment
 
 # load the relevant libraries
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(emmeans)
+pkgs <- c("dplyr","ggplot2","patchwork","emmeans")
+for (p in pkgs) {
+  cat("\n---- attaching:", p, "----\n")
+  try(library(p, character.only = TRUE))
+}
 
 # get a list of the function files
-file_list <- list.files(here::here("functions/"))
-print(file_list)
+fun_dir <- here::here("functions")
+file_list <- list.files(
+  fun_dir,
+  pattern = "\\.[Rr]$",
+  full.names = FALSE
+)
 
-# remove the sim_exp1.R, sim_exp2.R and sim_power_exp1.R files
-file_list <- file_list[!(file_list %in% c("sim_exp1.R", "sim_exp2.R", "sim_power_exp1.R"))]
+# drop specific scripts you don't want
+file_list <- setdiff(
+  file_list,
+  c("sim_exp1.R", "sim_exp2.R", "sim_power_exp1.R", "eda_func.R", "prep_exp_env.R")
+)
 
-# remove the eda_func.R file
-file_list <- file_list[file_list != "eda_func.R"]
-
-# remove the prep_exp_env.R script
-file_list <- file_list[file_list != "prep_exp_env.R"]
-
-# load the functions using source
+# source them with guardrails so you know which one fails
 for (i in file_list) {
-  source(file.path(here::here("functions"), i))
+  message("Sourcing: ", i)
+  tryCatch(
+    source(file.path(fun_dir, i), local = TRUE),
+    error = function(e) {
+      stop(sprintf("Error while sourcing %s: %s", i, conditionMessage(e)), call. = FALSE)
+    }
+  )
 }
 
 # load the data cleaning functions

@@ -448,5 +448,57 @@ ggsave(filename = "publication/fig-s4.png", p1, dpi = 600,
        units = c("cm"), width = 22, height = 26)
 ```
 
+## Simulation
+
+### Figure S5
+
+```{r}
+# get relevant figure tags
+fig_tags <- list(c("a", "b"), c("c", "d"), c("e", "f"), c("g", "h"))
+
+# load the relevant figures for each species
+p_list <- list()
+for (i in seq_along(sp_names)) {
+  x <- get_output_file(prefix = "fig-simulation-", species = sp_names[i], exclude_high_N = "FALSE")
+  y <- readRDS(file.path("figures-tables/", x))
+  p_list[[i]] <- y + plot_annotation(tag_levels = list(fig_tags[[i]]))
+}
+
+# get the relevant legend
+p_leg <- 
+  p_list[[1]] + plot_layout(guides = "collect") & 
+  theme(legend.position = "bottom",
+        legend.background = element_rect(fill = "white", colour = "white"),
+        legend.box.background = element_rect(fill = "white", colour = "white"))
+
+# extract the legend
+p_leg <- cowplot::get_legend(p_leg)
+
+# remove the legends
+for (i in seq_along(p_list)) {
+  p_list[[i]] <- 
+    p_list[[i]] + 
+    plot_layout(guides = "collect") &
+    theme(legend.position = "none")
+}
+```
+
+```{r}
+# bind using cowplot
+p1 <- cowplot::plot_grid(plotlist = p_list)
+p1 <- cowplot::plot_grid(p1, p_leg, ncol = 1, nrow = 2,
+                         rel_heights = c(2.5, 0.2))
+
+# check the plot
+p1
+```
+
+
+```{r}
+# export the plot
+ggsave(filename = "publication/fig-s5.png", p1, dpi = 600,
+       units = c("cm"), width = 20, height = 16)
+```
+
 
 
