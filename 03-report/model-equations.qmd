@@ -4,6 +4,8 @@ format: html
 editor: source
 ---
 
+## Experiment 1
+
 ### Basis spline functions:
 
 $$
@@ -163,3 +165,139 @@ log(B) =\ & \beta_0
 \]
 
 where ( \varepsilon \sim \mathcal{N}(0, \sigma\^2) ).
+
+
+## Experiment 2
+
+$$
+\begin{aligned}
+\text{ln}(B) =\ & \beta_0 
++ \beta_1 \text{ln}(N) 
++ \beta_2 M 
++ \beta_3 I 
++ \beta_4 \text{ln}(N)  \cdot M 
++ \beta_5 \text{ln}(N)  \cdot I 
++ \beta_6 M \cdot I 
++ \beta_7 \text{ln}(N)  \cdot M \cdot I 
++ \varepsilon
+\end{aligned}
+$$
+
+where:
+
+$$
+\varepsilon \sim \mathcal{N}(0, \sigma^2)
+$$
+
+
+### Question 3
+
+The Lotka–Volterra competition model for two species is given by:
+
+$$
+\frac{dN_{\text{native}}}{dt} = r_{\text{native}} N_{\text{native}} \left( 1 - \frac{N_{\text{native}} + \alpha_{{\text{native, invasive}}} N_{\text{invasive}}}{K_{\text{native}}} \right)
+$$
+
+$$
+\frac{dN_{\text{invasive}}}{dt} = r_{\text{invasive}} N_{\text{invasive}} \left( 1 - \frac{N_{\text{invasive}} + \alpha_{{\text{invasive, native}}} N_{\text{native}}}{K_{\text{invasive}}} \right)
+$$
+
+Where:
+- $N_{\text{native}}, N_{\text{invasive}}$: population sizes of the native species and the invasive species
+- $r_{\text{native}}, r_{\text{invasive}}$: intrinsic growth rates
+- $K_{\text{native}}, K_{\text{invasive}}$: carrying capacities of each species
+- $\alpha_{{\text{native, invasive}}}$: competition coefficient measuring effect of the invasive species on the native species
+- $\alpha_{{\text{invasive, native}}}$: competition coefficient measuring effect of the native species on the invasive species
+
+#### **1. Coexistence**
+
+Occurs when both species limit themselves more than they limit each other:
+
+$$
+\alpha_{\text{invasive,native}} < \frac{K_{\text{native}}}{K_{\text{invasive}}}
+\quad \text{and} \quad
+\alpha_{\text{native,invasive}} < \frac{K_{\text{invasive}}}{K_{\text{native}}}
+$$
+
+Native equilibrium abundance:
+
+$$
+N_{\text{native}}^* \;=\; 
+\frac{K_{\text{native}} - \alpha_{\text{native,invasive}} \, K_{\text{invasive}}}
+     {1 - \alpha_{\text{native,invasive}} \, \alpha_{\text{invasive,native}}}
+$$
+
+#### **2. Native wins**
+
+The native species excludes the invasive if:
+
+$$
+\frac{K_{\text{native}}}{\alpha_{\text{native,invasive}}} > K_{\text{invasive}}
+\quad \text{and} \quad
+\frac{K_{\text{invasive}}}{\alpha_{\text{invasive,native}}} < K_{\text{native}}
+$$
+
+Native equilibrium abundance:
+
+$$
+N_{\text{native}}^* = K_{\text{native}}
+$$
+
+---
+
+#### **3. Invasive wins**
+
+The invasive excludes the native if:
+
+$$
+\frac{K_{\text{native}}}{\alpha_{\text{native,invasive}}} < K_{\text{invasive}}
+\quad \text{and} \quad
+\frac{K_{\text{invasive}}}{\alpha_{\text{invasive,native}}} > K_{\text{native}}
+$$
+
+Native equilibrium abundance:
+
+$$
+N_{\text{native}}^* = N_{\min}
+$$
+
+(where $N_{\min}$ is the minimum viable population, often taken as zero)
+
+---
+
+#### **4. Unstable coexistence (priority effects)**
+
+If none of the above conditions hold, outcomes depend on initial conditions:
+
+Resolved stochastically with probability of native victory:
+
+$$
+p(\text{native wins}) = \frac{K_{\text{native}}}{K_{\text{native}} + K_{\text{invasive}}}
+$$
+
+Assignment:
+
+$$
+N_{\text{native}}^* =
+\begin{cases}
+K_{\text{native}}, & \text{if native “wins”} \\
+N_{\min}, & \text{otherwise}
+\end{cases}
+$$
+
+
+
+
+
+
+
+
+1016291665
+
+
+
+
+
+
+
+
